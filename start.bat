@@ -3,13 +3,14 @@ echo %* | find /I "-y"
 set force=off
 if /I "%errorlevel%" EQU "0" set force=on
 :: ==============================
-set workdir=%~dp0
+cd %~dp0
+cd ..
+set workdir=%cd%
 set jar=spigot-1.19.4.jar
 set port=25565
 set maxram=6144M
 set minram=2048M
-set command=java -Xmx%maxram% -Xms%minram% -jar "%workdir%%jar%" nogui
-cd %workdir%
+set command=java -Xmx%maxram% -Xms%minram% -jar "%workdir%\%jar%" nogui
 :: ==============================
 title Minecraft Manager Script
 :: Getting Server JAR Version
@@ -48,7 +49,7 @@ cls
 echo Starting Server (Step 1/2)
 echo [RUNNING] Starting Minecraft Server..
 :: Actual point where it starts the server
-start cmd /c "title Minecraft Server - %jar% & %command%"
+start cmd /c "%command%"
 timeout /t 1 /nobreak > nul
 cls
 echo Starting Server (Step 1/2)
@@ -94,7 +95,7 @@ taskkill -im ngrok.exe /f
 timeout /t 1 /nobreak > nul
 echo [RUNNING] Restarting bot to update server status :P
 taskkill -im python3.11.exe /f > nul
-start /min cmd /c "bot.bat"
+start /min cmd /c "%~dp0bot.bat"
 )
 echo [ Note ] Anyways.. I'll be going now, Bye!
 timeout /t 3 /nobreak > nul
