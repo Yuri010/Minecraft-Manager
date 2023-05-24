@@ -40,6 +40,7 @@ async def start(ctx):
 
         public_ip = await get_public_ip()
         if public_ip:
+            public_ip = public_ip.replace('tcp://', '')  # Remove the "tcp://" prefix
             embed.description = ':white_check_mark: The Minecraft server has started successfully.'
             embed.description += f"\n\nThe server is now accessible at: **{public_ip}**"
             await message.edit(embed=embed)
@@ -57,6 +58,17 @@ async def shutdown_bot(ctx):
     embed = discord.Embed(description=':stop_button: Shutting down the bot...', color=discord.Color.red())
     await ctx.send(embed=embed)
     await bot.close()
+
+@bot.command(name='info')
+async def info_command(ctx):
+    prefix = bot.command_prefix
+    bot_user = bot.user
+
+    embed = discord.Embed(description=f"Hi! I am a simple Discord bot made by <@603158153638707242>.\nI am designed to manage Minecraft servers from within Discord.\n\nMy current prefix is: `{prefix}`", color=discord.Color.blue())
+    embed.set_author(name=f'Minecraft Manager', icon_url=bot_user.avatar.url)
+    embed.add_field(name='Commands', value='`start`: Starts the Minecraft Server and displays the IP\n`shutdown`: Shuts down the Discord bot\n`info`: Display this info message', inline=False)
+
+    await ctx.send(embed=embed)
 
 async def get_public_ip():
     time.sleep(30)
