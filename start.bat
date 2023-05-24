@@ -11,7 +11,7 @@ set minram=2048M
 set command=java -Xmx%maxram% -Xms%minram% -jar "%workdir%%jar%" nogui
 cd %workdir%
 :: ==============================
-title Minecraft Server
+title Minecraft Manager Script
 :: Getting Server JAR Version
 FOR /F "tokens=* delims=3 USEBACKQ" %%F IN (`java -jar %jar% -version`) DO (
 SET ver=%%F
@@ -34,9 +34,11 @@ echo.   IP:                 To be determined...
 echo.   Port:               %port%
 echo.
 echo ==================================================
-if /I "%force%" NEQ "on" pause
-echo Proceeding with Server Startup...
-timeout /t 2 /nobreak > nul
+if /I "%force%" NEQ "on" (
+	pause
+	echo Proceeding with Server Startup...
+	timeout /t 2 /nobreak > nul
+)
 cls
 :: "Boot Screen"
 echo Starting Server (Step 1/2)
@@ -46,7 +48,7 @@ cls
 echo Starting Server (Step 1/2)
 echo [RUNNING] Starting Minecraft Server..
 :: Actual point where it starts the server
-start cmd /c "%command%"
+start cmd /c "title Minecraft Server - %jar% & %command%"
 timeout /t 1 /nobreak > nul
 cls
 echo Starting Server (Step 1/2)
@@ -72,23 +74,26 @@ echo Starting Server (Step 2/2)
 echo [BACKGROUND] Starting Minecraft Server...
 echo [SUCCESS] Waiting for Minecraft Server link state to become UP (Attempt %ctries%/5)
 echo [RUNNING] A start job is running for Ngrok...
-ngrok tcp %port%
+start /min ngrok tcp %port%
 cls
-if "%errorlevel%" EQU "0" (
-    echo [  OK  ] Ngrok exited with code 0, indicating a regular shutdown.
-) else (
-    echo [WARNING] Ngrok exited with code %errorlevel%, indicating an irregular shutdown!
-)
-echo [RUNNING] Poking around to see if the server is still UP...
-powershell -Command "Test-NetConnection -ComputerName 'localhost' -Port %port% | Select-Object -ExpandProperty TcpTestSucceeded" | findstr /I "true"
+echo Starting Server (Step 2/2)
+echo [SUCCESS] Starting Minecraft Server... Done.
+echo [SUCCESS] Waiting for Minecraft Server link state to become UP (Attempt %ctries%/5)
+echo [SUCCESS] A start job is running for Ngrok... Done.
+echo [BACKGROUND] This script will now wait until the Minecraft server goes offline...
+:check_process
+tasklist | find /i "java.exe" > nul 2> nul
 if /I "%errorlevel%" EQU "0" (
-    echo [WARNING] Seems like the server is still running... Perhaps shut that down first?
-) else (
-    echo [  OK  ] Looks like you shut it down correctly this time, Good Job!
+    timeout /t 10 /nobreak > nul
+    goto check_process
 )
-if /I "%force%" EQU "on" (
+cls
+echo [ Note ] The Minecraft server is no longer running...
+echo [RUNNING] A stop job is running for Ngrok...
+taskkill -im ngrok.exe /f
+timeout /t 1 /nobreak > nul
 echo [RUNNING] Restarting bot to update server status :P
-taskkill -im python.exe /f > nul
+taskkill -im python3.11.exe /f > nul
 start /min cmd /c "bot.bat"
 )
 echo [ Note ] Anyways.. I'll be going now, Bye!
