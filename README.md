@@ -9,8 +9,9 @@ Simple Discord bot and some scripts to manage a self-hosted Minecraft server
 
 ### Basic Setup
 *very limited, requires common sense and some steps not mentioned*
- 1. Install Python (3.11)
- 2. Move the files into the directory containing the server(.jar)
+ 1.1 Install Python (3.11)
+ 1.2 Install the following Python modules: `requests`, `mcrcon` and `discord.py`
+ 2. Create a new (sub)directory in the directory containing the server and move the files in there
  3. Download the Ngrok executable into that directory and authenticate it (see the Ngrok dashboard)
- 4. Change some variables (like the owner ID and bot token in ``bot.py``)
+ 4. Configure Config.cfg
  5. Run ``bot.bat`` and simply type ``#start`` in the Discord server with the bot and the server should start
