@@ -121,7 +121,7 @@ pause
 timeout 1 > nul
 if "%newinstall%" == "true" (
 start "" "cmd /c move updater-new.bat updater.bat"
-start "" "timeout /t 2 & updater.bat -configure"
+start "" "cmd /c timeout /t 2 & updater.bat -configure"
     cd ..
     start "" "cmd /c del /f updater.bat"
 ) else (
@@ -178,6 +178,7 @@ cls
 echo Restarting...
 timeout /t 2 /nobreak > nul
 start cmd /c "updater.bat -modules"
+exit
 :modules
 cls
 echo Downloading Python Modules
@@ -203,17 +204,13 @@ curl --progress-bar %dwdlk% -o server.jar
 java -jar server.jar nogui
 del eula.txt
 echo eula=true > eula.txt
+cls
 :continue
 echo Downloading Ngrok
 curl --progress-bar https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip -o ngrok.zip
 tar -xf ngrok.zip
 del ngrok.zip
 cls
-:: Could use this to set part of the config and server properties already: https://www.dostips.com/forum/viewtopic.php?t=7167#p46694
-echo Please refer to https://github.com/Yuri010/Minecraft-Manager/blob/main/README.md
-echo This will guide you through configuring the Discord Application and script configuration
-echo.
-pause
 set newinstall=true
 mkdir scripts
 cd scripts
