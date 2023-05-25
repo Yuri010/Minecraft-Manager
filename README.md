@@ -6,8 +6,9 @@ Simple Discord bot and some scripts to manage a self-hosted Minecraft server
  2. Go to your application, go to the bot tab and create your bot
  3. Copy the bot token somewhere, you will need this later so keep hold of it but **DON'T SHARE IT WITH ANYONE**
  4. Add the bot to the server you want:
-    1. Copy the client ID and replace it in the following link: https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=397284599872&scope=bot
-    2. Follow that link and add it to the server you want.
+    1. Copy the client ID and replace it in the following link:\
+       https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=397284599872&scope=bot
+    3. Follow that link and add it to the server you want.
  5. Customize the bot further, however you want (Changing the name and pfp in the "Bot" tab for example)
 
 ## Part 2: Server Setup
