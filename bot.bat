@@ -1,4 +1,4 @@
-:: version 1.0.1
+:: version 1.0.2
 @echo off
 title Discord - Minecraft Manager Bot
 echo %* | find /I "-debug"
