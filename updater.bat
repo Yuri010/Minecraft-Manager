@@ -109,6 +109,7 @@ echo Any attempts to start the bot or server will most likely fail.
 echo.
 echo Please refer to the README.md file at https://github.com/Yuri010/Minecraft-Manager/blob/main/README.md
 pause
+)
 timeout 1 > nul
 start "" "cmd /c move updater-new.bat updater.bat"
 exit
