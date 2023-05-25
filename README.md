@@ -1,6 +1,17 @@
 # Minecraft-Manager
 Simple Discord bot and some scripts to manage a self-hosted Minecraft server
 
+## License
+This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-nc-sa/4.0/)\
+TL;DR, you are allowed to-
+ - Share (Copy and Redistribute) in any medium or format
+ - Adapt (Remix transform, and build upon the material)
+
+**Under the following terms:**
+ - Attribution - You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+ - NonCommercial - You may not use the material for commercial purposes.
+ - ShareAlike - If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
+
 ## Part 1: Bot Setup
  1. Go to the Discord Developer Portal and create a new application
  2. Go to your application, go to the bot tab and create your bot
