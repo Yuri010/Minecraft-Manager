@@ -223,10 +223,13 @@ goto :update
 
 :configure
 cd %~dp0
+cd ..
+set propdir=%cd%
+cd %~dp0
 cls
 setlocal enabledelayedexpansion
 set "configFile=config.cfg"
-set "propertyFile=server.properties"
+set "propertyFile=%propdir%\server.properties"
 echo Part 3 - Configuration
 echo Step 1/2: config.cfg
 echo.
