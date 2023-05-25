@@ -1,7 +1,6 @@
 :: version 1.0.1
 @echo off
 title Minecraft-Manager Updater
-set pat=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
 set gver=SOME
 set lver=NONE
 cd %~dp0
@@ -17,7 +16,7 @@ if %errorlevel% == 0 goto :update
 if /I "%debug%" == "on" (
 echo Any errors with checking for updates should appear here:
 )
-curl --output releases.tmp -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer %pat%" https://api.github.com/repos/yuri010/minecraft-manager/releases
+curl --output releases.tmp -L https://api.github.com/repos/yuri010/minecraft-manager/releases
 if /I "%debug%" == "on" (
 echo.
 pause
@@ -87,14 +86,14 @@ echo Attempting to obtain the latest Minecraft-Manager...
 echo.
 echo Log: ====================================================================================================
 echo.
-curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/start.bat -o start-new.bat
-curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.bat -o bot-new.bat
-curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.py -o bot-new.py
-curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/updater.bat -o updater-new.bat
+curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/start.bat -o start-new.bat
+curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.bat -o bot-new.bat
+curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.py -o bot-new.py
+curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/updater.bat -o updater-new.bat
 if NOT exist config.cfg (
     cls
     echo NOTE: EXISTING CONFIG COULD NOT BE FOUND, DOWNLOADING TEMPLATE...
-curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/config.cfg -o config-new.cfg > nul
+curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/config.cfg -o config-new.cfg > nul
 )
 echo.
 echo =========================================================================================================
