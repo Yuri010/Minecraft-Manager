@@ -5,19 +5,22 @@ set gver=SOME
 set lver=NONE
 set newinstall=false
 cd %~dp0
-echo %* | findstr /I "install"
-if %errorlevel% == 0 goto :install
+
 set debug=off
 echo %* | find /I "-debug"
 if %errorlevel% == 0 set debug=on
+
 echo %* | find /I "-configure"
 if %errorlevel% == 0 goto :configure
-echo %* | find /I "-install"
-if %errorlevel% == 0 goto :reqadmin
+
 echo %* | find /I "-modules"
 if %errorlevel% == 0 goto :modules
+
 echo %* | find /I "update"
 if %errorlevel% == 0 goto :update
+
+echo %* | find /I "-install"
+if %errorlevel% == 0 goto :install
 
 :: ==================================================Obtain==================================================
 if /I "%debug%" == "on" (
