@@ -3,12 +3,15 @@
 title Minecraft-Manager Updater
 set gver=SOME
 set lver=NONE
+set newinstall=false
 cd %~dp0
 echo %* | findstr /I "install"
 if %errorlevel% == 0 goto :install
 set debug=off
 echo %* | find /I "-debug"
 if %errorlevel% == 0 set debug=on
+echo %* | find /I "-configure"
+if %errorlevel% == 0 goto :configure
 echo %* | find /I "-install"
 if %errorlevel% == 0 goto :reqadmin
 echo %* | find /I "-modules"
@@ -106,19 +109,22 @@ move start-new.bat start.bat
 move bot-new.bat bot.bat
 move bot-new.py bot.py
 if NOT exist config.cfg (
-move config-new.cfg config.cfg
+echo WARNING! THE CONFIG FILE IS NOT SET UP
+echo Starting the bot or server WILL FAIL
 echo.
-echo Please note that the configuration file is not set up
-echo Any attempts to start the bot or server will most likely fail.
+echo Please run this script using the -configure tag
+echo to set everything up properly...
 echo.
-echo Please refer to the README.md file at https://github.com/Yuri010/Minecraft-Manager/blob/main/README.md
 pause
 )
 timeout 1 > nul
-start "" "cmd /c move updater-new.bat updater.bat"
 if "%newinstall%" == "true" (
+start "" "cmd /c move updater-new.bat updater.bat"
+start "" "timeout /t 2 & updater.bat -configure"
     cd ..
-    start "" cmd /c del /f updater.bat"
+    start "" "cmd /c del /f updater.bat"
+) else (
+start "" "cmd /c move updater-new.bat updater.bat"
 )
 exit
 
@@ -211,3 +217,87 @@ set newinstall=true
 mkdir scripts
 cd scripts
 goto :update
+
+:: ==================================================Configure==================================================
+
+:configure
+cd %~dp0
+cls
+setlocal enabledelayedexpansion
+set "configFile=config.cfg"
+set "propertyFile=server.properties"
+echo Part 3 - Configuration
+echo Step 1/2: config.cfg
+echo.
+set "var=TOKEN"
+set "value=YOUR_BOT_TOKEN"
+echo Please enter your bot token:
+set /p "newValue="
+call :replconfig
+cls
+echo Part 3 - Configuration
+echo Step 1/2: config.cfg
+echo.
+set "var=bot_owner_id"
+set "value=YOUR_OWNER_ID"
+echo Please enter your Discord User ID:
+set /p "newValue="
+call :replconfig
+cls
+echo Part 3 - Configuration
+echo Step 1/2: config.cfg
+echo.
+set "var=rcon_password"
+set "value=YOUR_RCON_PASSWORD"
+echo Please enter a new RCON Password:
+set /p "rconpass="
+set "newValue=%rconpass%"
+call :replconfig
+cls
+echo Part 3 - Configuration
+echo Step 2/2: server.properties
+echo.
+echo Attempting Autoconfiguration... Please wait.
+set "var=enable-rcon"
+set "value=false"
+set "newValue=true"
+call :replprop
+set "var=rcon.password"
+set "value="
+set "newValue=%rconpass%"
+call :replprop
+cls
+echo Configuration Done.
+echo Enjoy!
+timeout /t 3 /nobreak > nul
+exit
+
+:: ============================================================
+
+:replconfig
+set "searchLine=%var% = %value%"
+set "replaceLine=%var% = %newValue%"
+(for /F "usebackq delims=" %%a in ("%configFile%") do (
+    set "line=%%a"
+    if "!line!"=="%searchLine%" (
+        echo %replaceLine%
+    ) else (
+        echo %%a
+    )
+)) > temp.cfg
+move /y temp.cfg "%configFile%" > nul
+exit /b
+
+:replprop
+set "searchLine=%var%=%value%"
+set "replaceLine=%var%=%newValue%"
+(for /F "usebackq delims=" %%a in ("%propertyFile%") do (
+    set "line=%%a"
+    if "!line!"=="%searchLine%" (
+        echo %replaceLine%
+    ) else (
+        echo %%a
+    )
+)) > temp.properties
+move /y temp.properties "%propertyFile%" > nul
+exit /b
