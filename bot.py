@@ -1,4 +1,4 @@
-# version 1.0.0
+# version 1.0.1
 import discord
 from discord.ext import commands
 import subprocess
@@ -21,7 +21,7 @@ rcon_password = config.get('PythonConfig', 'rcon_password')
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='mc!', intents=intents)
+bot = commands.Bot(command_prefix='$', intents=intents)
 
 def has_required_role(ctx):
     role = discord.utils.get(ctx.guild.roles, name=required_role)

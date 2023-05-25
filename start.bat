@@ -1,17 +1,25 @@
-:: version 1.0.0
+:: version 1.0.1
 @echo off
 echo %* | find /I "-y"
 set force=off
 if /I "%errorlevel%" EQU "0" set force=on
 :: ==============================
 cd %~dp0
+if NOT exist config.cfg (
+    cls
+    echo [FATAL] CONFIG COULD NOT BE FOUND
+    echo FAILED TO START SERVER
+    echo.
+    echo Press any key to exit...
+    pause > nul
+    exit
+)
 for /f "usebackq tokens=1,2 delims==" %%G in ("config.cfg") do (
     if "%%G"=="jar " set "jar=%%H"
     if "%%G"=="port " set "port=%%H"
     if "%%G"=="maxram " set "maxram=%%H"
     if "%%G"=="minram " set "minram=%%H"
 )
-rem Remove leading spaces from the values
 set "jar=%jar: =%"
 set "port=%port: =%"
 set "maxram=%maxram: =%"
@@ -19,6 +27,25 @@ set "minram=%minram: =%"
 cd ..
 set workdir=%cd%
 set command=java -Xmx%maxram% -Xms%minram% -jar "%workdir%\%jar%" nogui
+:: ==============================
+if NOT exist %jar% (
+    cls
+    echo [FATAL] SERVER JAR COULD NOT BE FOUND
+    echo FAILED TO START SERVER
+    echo.
+    echo Press any key to exit...
+    pause > nul
+    exit
+)
+if NOT exist ngrok.exe (
+    cls
+    echo [FATAL] NGROK COULD NOT BE FOUND
+    echo FAILED TO START SERVER
+    echo.
+    echo Press any key to exit...
+    pause > nul
+    exit
+)
 :: ==============================
 title Minecraft Manager Script
 :: Getting Server JAR Version
@@ -31,6 +58,15 @@ echo.
 echo Configuration:
 echo.
 java -version
+if /I "%errorlevel%" NEQ "0" (
+    cls
+    echo [FATAL] JAVA COULD NOT BE FOUND
+    echo FAILED TO START SERVER
+    echo.
+    echo Press any key to exit...
+    pause > nul
+    exit
+)
 echo.
 echo.   Server JAR:         %jar%
 echo.   Server JAR Version: %ver%
@@ -104,7 +140,6 @@ timeout /t 1 /nobreak > nul
 echo [RUNNING] Restarting bot to update server status :P
 taskkill -im python3.11.exe /f > nul
 start /min cmd /c "%~dp0bot.bat"
-)
 echo [ Note ] Anyways.. I'll be going now, Bye!
 timeout /t 3 /nobreak > nul
 exit
