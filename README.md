@@ -23,6 +23,18 @@ TL;DR, you are allowed to-
  5. Customize the bot further, however you want (Changing the name and pfp in the "Bot" tab for example)
 
 ## Part 2: Server Setup
+
+### Automatic Install
+  1. Download the "Updater.bat" attached in the [Releases tab](https://github.com/Yuri010/Minecraft-Manager/releases) of this repository
+  2. Create a folder where you want the Minecraft Server to be installed in
+  3. Move the Updater.bat to that folder and open the script
+  4. It should start working automatically and may ask for Administrative rights in order to install Java and Python, to successfully install the server, click "Yes" on the UAC popup
+  5. The script should install Java, Python, download one of the server JARs from the small list and set everything up for [Part 3: Configuration]([#part-3-configuration).\
+     Which basically means you are done here in less than 10 clicks of a mouse!
+ 
+<details>
+  <summary> Option 2: Manual Install (Why would you?)</summary>
+ 
  1. Install a recent Java JDK (18 or higher is recommended)\
     https://www.oracle.com/java/technologies/downloads/#jdk20-windows
  2. Install Python (3.11)\
@@ -39,6 +51,7 @@ TL;DR, you are allowed to-
     Open this file and replace ``EULA=false`` with ``EULA=true`` if you agree to the Minecraft Server EULA
  7. Create an account at Ngrok and download the Windows executable (https://ngrok.com/download) \
     Then move the Ngrok executable to the server folder.
+ </details>
 
 ## Part 3: Configuration
  1. Authenticate Ngrok (Once you create an account you should see instructions right on the dashboard)
@@ -77,18 +90,8 @@ minram = 1024M
 
 ## Part 4: Running it all
 After having followed the full setup, everything should be installed and configured correctly.
-Just a brief checklist:
-- [ ] Discord Application and Bot set-up and added to server
-- [ ] Java and Python installed, including the python modules
-- [ ] Downloaded a Server.jar and Ngrok.exe and dumped them in a handy folder
-- [ ] Started the Server.jar once and accepted the UELA
-- [ ] Created an account for and authenticated Ngrok
-- [ ] Made a handy subfolder in that handy folder and dumped the scripts in there
-- [ ] Edited the config.cfg with your values
-- [ ] Edited the server.properties to accept Console Connections by the bot
-
-If you have all that, all you have to do is just run the bot.bat, it should start right up and say it is "Bot is ready, logged in as <Bot_Username>".
-Then just simply type ``$start`` in the #bot-commands channel of your server which you added the bot to and it should start right up.
+All you have to do now is just run the bot.bat and it should start right up and say "Bot is ready, logged in as <Bot_Username>".
+Then simply type ``$start`` in the #bot-commands channel of your server in which you added the bot and it should start right up.
 
 ## Troubleshooting (If needed)
 Even if you followed all the steps shown above, some errors might still pop up.
