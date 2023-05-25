@@ -1,3 +1,4 @@
+# version 1.0.0
 import discord
 from discord.ext import commands
 import subprocess
