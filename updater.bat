@@ -124,7 +124,7 @@ pause
 timeout 1 > nul
 if "%newinstall%" == "true" (
 move updater-new.bat updater.bat"
-start "" "cmd /c updater.bat" -configure
+start "" "cmd /c "%~dp0scripts/updater.bat" -configure
 cd ..
 start "" "cmd /c del /f updater.bat"
 ) else (
