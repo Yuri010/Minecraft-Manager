@@ -85,12 +85,14 @@ curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yur
 curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.bat -o bot-new.bat
 curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.py -o bot-new.py
 curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/updater.bat -o updater-new.bat
+curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/config.cfg -o config-new.cfg
 echo.
 echo =========================================================================================================
 echo Updating to version %gver% over %lver%...
 move start-new.bat start.bat
 move bot-new.bat bot.bat
 move bot-new.py bot.py
+move config-new.cfg config.cfg
 timeout 1 > nul
 start "" "cmd /c move updater-new.bat updater.bat"
 exit
