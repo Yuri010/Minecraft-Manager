@@ -1,15 +1,23 @@
+:: version 1.0.0
 @echo off
 echo %* | find /I "-y"
 set force=off
 if /I "%errorlevel%" EQU "0" set force=on
 :: ==============================
 cd %~dp0
+for /f "usebackq tokens=1,2 delims==" %%G in ("config.cfg") do (
+    if "%%G"=="jar " set "jar=%%H"
+    if "%%G"=="port " set "port=%%H"
+    if "%%G"=="maxram " set "maxram=%%H"
+    if "%%G"=="minram " set "minram=%%H"
+)
+rem Remove leading spaces from the values
+set "jar=%jar: =%"
+set "port=%port: =%"
+set "maxram=%maxram: =%"
+set "minram=%minram: =%"
 cd ..
 set workdir=%cd%
-set jar=spigot-1.19.4.jar
-set port=25565
-set maxram=6144M
-set minram=2048M
 set command=java -Xmx%maxram% -Xms%minram% -jar "%workdir%\%jar%" nogui
 :: ==============================
 title Minecraft Manager Script
