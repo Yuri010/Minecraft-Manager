@@ -92,8 +92,9 @@ curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yur
 curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.py -o bot-new.py
 curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/updater.bat -o updater-new.bat
 if NOT exist config.cfg (
+    cls
     echo NOTE: EXISTING CONFIG COULD NOT BE FOUND, DOWNLOADING TEMPLATE...
-curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/config.cfg -o config-new.cfg
+curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/config.cfg -o config-new.cfg > nul
 )
 echo.
 echo =========================================================================================================
