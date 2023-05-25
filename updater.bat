@@ -109,6 +109,7 @@ move start-new.bat start.bat
 move bot-new.bat bot.bat
 move bot-new.py bot.py
 if NOT exist config.cfg (
+move config-new.cfg config.cfg
 echo WARNING! THE CONFIG FILE IS NOT SET UP
 echo Starting the bot or server WILL FAIL
 echo.
