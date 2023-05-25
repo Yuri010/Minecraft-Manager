@@ -1,3 +1,4 @@
+:: version 1.0.0
 @echo off
 echo %* | find /I "-y"
 set force=off
