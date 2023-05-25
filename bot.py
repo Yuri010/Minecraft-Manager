@@ -5,14 +5,18 @@ import subprocess
 import requests
 import time
 import mcrcon
+import configparser
 
-TOKEN = 'YOUR_BOT_TOKEN'
-required_role = 'Minecrafter'
-bot_owner_id = YOUR_OWNER_ID
+config = configparser.ConfigParser()
+config.read('config.cfg')
+
+TOKEN = config.get('PythonConfig', 'TOKEN')
+required_role = config.get('PythonConfig', 'required_role')
+bot_owner_id = int(config.get('PythonConfig', 'bot_owner_id'))
 server_running = False
-rcon_host = '127.0.0.1'
-rcon_port = 25575
-rcon_password = 'RCON_PASS'
+rcon_host = config.get('PythonConfig', 'rcon_host')
+rcon_port = int(config.get('PythonConfig', 'rcon_port'))
+rcon_password = config.get('PythonConfig', 'rcon_password')
 
 intents = discord.Intents.default()
 intents.message_content = True
