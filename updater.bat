@@ -11,14 +11,10 @@ echo %* | findstr /I "update"
 if %errorlevel% == 0 goto :update
 
 :: ==================================================Obtain==================================================
-curl --output releases.tmp -L -H "Authorization: token %pat%" https://api.github.com/repos/yuri010/minecraft-manager/releases
-pause
+curl --output releases.tmp -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer %pat%" https://api.github.com/repos/yuri010/minecraft-manager/releases
 call :gver
-echo gver = %gver%
 call :gvercleanup
-echo clean gver = %gver%
 call :lver
-echo lver = %lver%
 goto :main
 :: ==================================================Checks==================================================
 
