@@ -1,17 +1,27 @@
-:: version 1.0.0
+:: version 1.0.1
 @echo off
 title Minecraft-Manager Updater
 set pat=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
 set gver=SOME
 set lver=NONE
 cd %~dp0
-echo %* | findstr /I "install"
-if %errorlevel% == 0 goto :install
-echo %* | findstr /I "update"
+::echo %* | findstr /I "install"
+::if %errorlevel% == 0 goto :install
+set debug=off
+echo %* | find /I "-debug"
+if %errorlevel% == 0 set debug=on
+echo %* | find /I "update"
 if %errorlevel% == 0 goto :update
 
 :: ==================================================Obtain==================================================
+if /I "%debug%" == "on" (
+echo Any errors with checking for updates should appear here:
+)
 curl --output releases.tmp -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer %pat%" https://api.github.com/repos/yuri010/minecraft-manager/releases
+if /I "%debug%" == "on" (
+echo.
+pause
+)
 call :gver
 call :gvercleanup
 call :lver
@@ -81,14 +91,24 @@ curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yur
 curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.bat -o bot-new.bat
 curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.py -o bot-new.py
 curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/updater.bat -o updater-new.bat
+if NOT exist config.cfg (
+    echo NOTE: EXISTING CONFIG COULD NOT BE FOUND, DOWNLOADING TEMPLATE...
 curl -H "Authorization: token %pat%" -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/config.cfg -o config-new.cfg
+)
 echo.
 echo =========================================================================================================
 echo Updating to version %gver% over %lver%...
 move start-new.bat start.bat
 move bot-new.bat bot.bat
 move bot-new.py bot.py
+if NOT exist config.cfg (
 move config-new.cfg config.cfg
+echo.
+echo Please note that the configuration file is not set up
+echo Any attempts to start the bot or server will most likely fail.
+echo.
+echo Please refer to the README.md file at https://github.com/Yuri010/Minecraft-Manager/blob/main/README.md
+pause
 timeout 1 > nul
 start "" "cmd /c move updater-new.bat updater.bat"
 exit
