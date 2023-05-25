@@ -1,5 +1,5 @@
 :: version 1.0.0
-@echo on
+@echo off
 echo %* | find /I "-y"
 set force=off
 if /I "%errorlevel%" EQU "0" set force=on
@@ -19,8 +19,6 @@ set "minram=%minram: =%"
 cd ..
 set workdir=%cd%
 set command=java -Xmx%maxram% -Xms%minram% -jar "%workdir%\%jar%" nogui
-pause
-exit
 :: ==============================
 title Minecraft Manager Script
 :: Getting Server JAR Version
