@@ -23,9 +23,9 @@ if %errorlevel% == 0 goto :install
 if /I "%debug%" == "on" echo Any errors with checking for updates should appear here:
 curl --output releases.tmp -L https://api.github.com/repos/yuri010/minecraft-manager/releases
 if /I "%debug%" == "on" echo. & pause
-for /F "tokens=2 delims= " %%a IN ('findstr /I "tag_name" releases.tmp') DO set gver=%%a & exit /b
-for /F "tokens=1 delims=," %%b IN ("%gver%") DO set gver=%%b & exit /b
-for /F "tokens=3 delims= " %%c IN ('findstr /I "version" bot.py') DO set lver=%%c & exit /b
+for /F "tokens=2 delims= " %%a IN ('findstr /I "tag_name" releases.tmp') DO set gver=%%a
+for /F "tokens=1 delims=," %%b IN ("%gver%") DO set gver=%%b
+for /F "tokens=3 delims= " %%c IN ('findstr /I "version" bot.py') DO set lver=%%c
 goto :main
 
 :: ===================================MAIN===================================
