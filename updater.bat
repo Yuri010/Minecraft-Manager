@@ -1,94 +1,68 @@
 :: version 1.0.2
 @echo off
 title Minecraft-Manager Updater
+cd %~dp0
+:: ===================================VAR===================================
 set gver=SOME
 set lver=NONE
 set newinstall=false
-cd %~dp0
-
 set debug=off
 echo %* | find /I "-debug"
 if %errorlevel% == 0 set debug=on
-
 echo %* | find /I "-configure"
 if %errorlevel% == 0 goto :configure
-
 echo %* | find /I "-modules"
 if %errorlevel% == 0 goto :modules
-
 echo %* | find /I "update"
 if %errorlevel% == 0 goto :update
-
 echo %* | find /I "-install"
 if %errorlevel% == 0 goto :install
 
-:: ==================================================Obtain==================================================
-if /I "%debug%" == "on" (
-echo Any errors with checking for updates should appear here:
-)
+:: ===================================CHECK===================================
+
+if /I "%debug%" == "on" echo Any errors with checking for updates should appear here:
 curl --output releases.tmp -L https://api.github.com/repos/yuri010/minecraft-manager/releases
-if /I "%debug%" == "on" (
-echo.
-pause
-)
-call :gver
-call :gvercleanup
-call :lver
+if /I "%debug%" == "on" echo. & pause
+for /F "tokens=2 delims= " %%a IN ('findstr /I "tag_name" releases.tmp') DO set gver=%%a & exit /b
+for /F "tokens=1 delims=," %%b IN ("%gver%") DO set gver=%%b & exit /b
+for /F "tokens=3 delims= " %%c IN ('findstr /I "version" bot.py') DO set lver=%%c & exit /b
 goto :main
-:: ==================================================Checks==================================================
 
-:gver
-for /F "tokens=2 delims= " %%a IN ('findstr /I "tag_name" releases.tmp') DO (
-    set gver=%%a
-    exit /b
-)
-:gvercleanup
-for /F "tokens=1 delims=," %%b IN ("%gver%") DO (
-    set gver=%%b
-    exit /b
-)
-
-:lver
-for /F "tokens=3 delims= " %%c IN ('findstr /I "version" bot.py') DO (
-    set lver=%%c
-    exit /b
-)
-
+:: ===================================MAIN===================================
 
 :main
 del releases.tmp
-if exist "start.bat" (
-    if "%lver%" LSS %gver% (
-        cls
-        echo An update is available, would you like to install it? [Y/N]
-        choice /c YN /N
-        if /I "%errorlevel%" EQU "2" exit
-        if /I "%errorlevel%" EQU "1" goto :update
-    )
-    if /I "%lver%" GTR %gver% (
-        cls
-        echo Hey! Github isn't Up-to-Date!
-        echo.
-        echo Press any key to exit...
-        pause > nul
-        exit
-    )
-    if /I "%lver%" == %gver% (
-        cls
-        echo Minecraft-Manager is Up-to-Date.
-        echo.
-        echo Press any key to exit...
-        pause > nul
-        exit
-    )
-) else (
+if NOT exist "start.bat" (
     cls
     echo Minecraft-Manager is not installed! It will be installed automatically.
     timeout /t 3 /nobreak > nul
     goto :reqadmin
 )
+if "%lver%" LSS %gver% (
+    cls
+    echo An update is available, would you like to install it? [Y/N]
+    choice /c YN /N
+    if /I "%errorlevel%" EQU "2" exit
+    if /I "%errorlevel%" EQU "1" goto :update
+)
+if /I "%lver%" GTR %gver% (
+    cls
+    echo Hey! Github isn't Up-to-Date!
+    echo.
+    echo Press any key to exit...
+    pause > nul
+    exit
+)
+if /I "%lver%" == %gver% (
+    cls
+    echo Minecraft-Manager is Up-to-Date.
+    echo.
+    echo Press any key to exit...
+    pause > nul
+    exit
+)
 
-:: ==================================================Update==================================================
+:: ===================================UPDATE===================================
 
 :update
 cls
@@ -111,26 +85,17 @@ echo Updating to version %gver% over %lver%...
 move start-new.bat start.bat
 move bot-new.bat bot.bat
 move bot-new.py bot.py
-if NOT exist config.cfg (
-move config-new.cfg config.cfg
-echo WARNING! THE CONFIG FILE IS NOT SET UP
-echo Starting the bot or server WILL FAIL
-echo.
-echo Please run this script using the -configure tag
-echo to set everything up properly...
-echo.
-pause
-)
+if NOT exist config.cfg move config-new.cfg config.cfg
 timeout 1 > nul
 if "%newinstall%" == "true" (
 move updater-new.bat updater.bat"
 start "" "cmd /c "%~dp0scripts/updater.bat" -configure
 cd ..
 start "" "cmd /c del /f updater.bat"
-) else (
-start "" "cmd /c move updater-new.bat updater.bat"
-)
+) else start "" "cmd /c move updater-new.bat updater.bat"
 exit
+
+:: ===================================INSTALL===================================
 
 :reqadmin
 "%SYSTEMROOT%\SysWOW64\cacls.exe" "%SYSTEMROOT%\SysWOW64\config\system"
@@ -139,30 +104,21 @@ echo.
 echo For installing the server, Administrative rights will be needed
 echo Please accept the UAC Prompt
 timeout /t 3 /nobreak > nul
-goto UACPrompt
-) else ( goto install )
-
-:UACPrompt
 echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
 set params = %*:"=""
 echo UAC.ShellExecute "cmd.exe", "/c ""%~s0"" %params% -install", "", "runas", 1 >> "%temp%\getadmin.vbs"
 "%temp%\getadmin.vbs"
 del "%temp%\getadmin.vbs"
 exit
+) else goto install
 
 :install
 java --version > nul
 if %errorlevel% NEQ 0 (
 set javaver=0
-) else (
-for /F "tokens=3" %%F IN ('java -version 2^>^&1 ^| findstr /i "version"') DO set javaver=%%F
-)
+) else for /F "tokens=3" %%F IN ('java -version 2^>^&1 ^| findstr /i "version"') DO set javaver=%%F
 py --version > nul
-if %errorlevel% NEQ 0 (
-set pyver=0
-) else (
-for /F "tokens=2" %%F IN ('py --version') DO set pyver=%%F
-)
+if %errorlevel% NEQ 0 ( set pyver=0 ) else ( for /F "tokens=2" %%F IN ('py --version') DO set pyver=%%F )
 cls
 echo Installing Minecraft-Manager Step 1/2
 if %javaver% LSS "17.0.7" (
@@ -219,7 +175,7 @@ mkdir scripts
 cd scripts
 goto :update
 
-:: ==================================================Configure==================================================
+:: ===================================CONFIGURE===================================
 
 :configure
 cd %~dp0
@@ -276,7 +232,7 @@ echo Enjoy!
 timeout /t 3 /nobreak > nul
 exit
 
-:: ============================================================
+:: ==============================WRITE-CONFIG==============================
 
 :replconfig
 set "searchLine=%var% = %value%"
