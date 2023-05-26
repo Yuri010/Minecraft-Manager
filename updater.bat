@@ -113,7 +113,7 @@ exit
 ) else goto install
 
 :install
-java --version > nul
+java -version > nul
 if %errorlevel% NEQ 0 (
 set javaver=0
 ) else for /F "tokens=3" %%F IN ('java -version 2^>^&1 ^| findstr /i "version"') DO set javaver=%%F
@@ -121,7 +121,7 @@ py --version > nul
 if %errorlevel% NEQ 0 ( set pyver=0 ) else ( for /F "tokens=2" %%F IN ('py --version') DO set pyver=%%F )
 cls
 echo Installing Minecraft-Manager Step 1/2
-if %javaver% LSS "17.0.7" (
+if %javaver% LSS 17.0.7 (
 echo Downloading Java
 curl --progress-bar https://download.oracle.com/java/20/latest/jdk-20_windows-x64_bin.msi -o jdk-20.msi
 echo Installing Java
@@ -148,12 +148,7 @@ echo. (V)anilla Minecraft
 echo. (S)pigot Server (Supports Plugins)
 echo. (A)dd later (manually)
 choice /C VSA /M "Choice: "
-if %errorlevel% == 3 (
-    echo By doing this manually, you will have to download and set-up a server.jar
-    echo before being able to use the script.
-    timeout /t 2 /nobreak > nul
-    goto :continue
-)
+if %errorlevel% == 3 goto :continue
 if %errorlevel% == 2 set dwdlk=https://download.getbukkit.org/spigot/spigot-1.19.4.jar & set server=Spigot
 if %errorlevel% == 1 set dwdlk=https://piston-data.mojang.com/v1/objects/8f3112a1049751cc472ec13e397eade5336ca7ae/server.jar & set server=Vanilla
 echo.
