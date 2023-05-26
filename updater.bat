@@ -113,7 +113,7 @@ exit
 ) else goto install
 
 :install
-java -version > nul
+java -version
 if %errorlevel% NEQ 0 (
 set javaver=0
 ) else for /F "tokens=3" %%F IN ('java -version 2^>^&1 ^| findstr /i "version"') DO set javaver=%%F
@@ -121,7 +121,7 @@ py --version > nul
 if %errorlevel% NEQ 0 ( set pyver=0 ) else ( for /F "tokens=2" %%F IN ('py --version') DO set pyver=%%F )
 cls
 echo Installing Minecraft-Manager Step 1/2
-if %javaver% LSS 17.0.7 (
+if %javaver% LSS "17.0.7" (
 echo Downloading Java
 curl --progress-bar https://download.oracle.com/java/20/latest/jdk-20_windows-x64_bin.msi -o jdk-20.msi
 echo Installing Java
