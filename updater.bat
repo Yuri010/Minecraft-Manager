@@ -158,8 +158,11 @@ echo.
 echo Downloading the %server% Server JAR (1.19.4)
 curl --progress-bar %dwdlk% -o server.jar
 java -jar server.jar nogui
-del eula.txt
-echo eula=true > eula.txt
+set "propertyFile=eula.txt"
+set "var=eula"
+set "value=false"
+set "newValue=true"
+call :replprop
 cls
 :continue
 echo Downloading Ngrok
