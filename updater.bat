@@ -126,12 +126,14 @@ echo Downloading Java
 curl --progress-bar https://download.oracle.com/java/20/latest/jdk-20_windows-x64_bin.msi -o jdk-20.msi
 echo Installing Java
 msiexec /i jdk-20.msi /qn /passive
+del /q jdk-20.msi
 )
 if %pyver% LSS 3.0.0 (
 echo Downloading Python
 curl --progress-bar https://www.python.org/ftp/python/3.11.3/python-3.11.3-amd64.exe -o python-install.exe
 echo Installing Python
 python-install.exe /passive
+del /q python-install.exe
 )
 cls
 echo Restarting...
@@ -163,7 +165,7 @@ cls
 echo Downloading Ngrok
 curl --progress-bar https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip -o ngrok.zip
 tar -xf ngrok.zip
-del ngrok.zip
+del /q ngrok.zip
 cls
 set newinstall=true
 mkdir scripts
