@@ -1,4 +1,4 @@
-# version 1.0.2
+# version 1.0.3
 import discord
 from discord.ext import commands
 import subprocess
@@ -6,6 +6,8 @@ import requests
 import time
 import mcrcon
 import configparser
+import socket
+import asyncio
 
 config = configparser.ConfigParser()
 config.read('config.cfg')
@@ -48,6 +50,7 @@ async def start(ctx):
         server_running = True
         await bot.change_presence(activity=discord.Game(name="a Minecraft Server"))
 
+        await asyncio.sleep(45)
         public_ip = await get_public_ip()
         if public_ip:
             public_ip = public_ip.replace('tcp://', '')  # Remove the "tcp://" prefix
@@ -55,12 +58,44 @@ async def start(ctx):
             embed.description += f"\n\nThe server is now accessible at: **{public_ip}**"
             await message.edit(embed=embed)
         else:
-            embed = discord.Embed(description='Failed to retrieve the public IP of the server.', color=discord.Color.red())
+            embed = discord.Embed(description=':x: Failed to retrieve the public IP of the server.', color=discord.Color.red())
             await message.edit(embed=embed)
-            
+
     except Exception as e:
         embed = discord.Embed(description=f':x: An error occurred while starting the server: {str(e)}', color=discord.Color.red())
         await message.edit(embed=embed)
+
+@bot.command(name='stop')
+@commands.check(is_bot_owner)
+async def stop_command(ctx):
+    if not server_running:
+        embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
+        await ctx.send(embed=embed)
+        return
+
+    try:
+        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
+            response = rcon.command('stop')
+            embed = discord.Embed(description=':stop_button: Sent the `stop` command to the Minecraft server.', color=discord.Color.green())
+            await ctx.send(embed=embed)
+    except mcrcon.MCRconException as e:
+        embed = discord.Embed(description=':x: Failed to send the `stop` command to the Minecraft server.', color=discord.Color.red())
+        await ctx.send(embed=embed)@bot.command(name='stop')
+@commands.check(is_bot_owner)
+async def stop_command(ctx):
+    if not server_running:
+        embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
+        await ctx.send(embed=embed)
+        return
+
+    try:
+        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
+            response = rcon.command('stop')
+            embed = discord.Embed(description=':stop_button: Sent the `stop` command to the Minecraft server.', color=discord.Color.green())
+            await ctx.send(embed=embed)
+    except mcrcon.MCRconException as e:
+        embed = discord.Embed(description=':x: Failed to send the `stop` command to the Minecraft server.', color=discord.Color.red())
+        await ctx.send(embed=embed)
 
 @bot.command(name='shutdown')
 @commands.check(is_bot_owner)
@@ -74,9 +109,25 @@ async def info_command(ctx):
     prefix = bot.command_prefix
     bot_user = bot.user
 
+    # Minecraft Server Commands
+    minecraft_commands = [
+        '`start`: Starts the Minecraft Server and displays the IP',
+        '`stop`: Stops the Minecraft Server',
+        '`console <command>`: Send commands to the Minecraft Server',
+        '`status`: Shows the status of the Minecraft server'
+    ]
+
+    # Miscellaneous Bot Commands
+    bot_commands = [
+        '`ping`: Pong!',
+        '`info`: Display this info message',
+        '`shutdown`: Shuts down the Discord bot'
+    ]
+
     embed = discord.Embed(description=f"Hi! I am a simple Discord bot made by <@603158153638707242>.\nI am designed to manage Minecraft servers from within Discord.\n\nMy current prefix is: `{prefix}`", color=discord.Color.blue())
     embed.set_author(name=f'Minecraft Manager', icon_url=bot_user.avatar.url)
-    embed.add_field(name='Commands', value='`start`: Starts the Minecraft Server and displays the IP\n`stop`: Stops the Minecraft Server\n`console <command>`: Send commands to the Minecraft Server\n`shutdown`: Shuts down the Discord bot\n`ping`: Pong!\n`info`: Display this info message', inline=False)
+    embed.add_field(name='Minecraft Server Commands', value='\n'.join(minecraft_commands), inline=False)
+    embed.add_field(name='Miscellaneous Bot Commands', value='\n'.join(bot_commands), inline=False)
 
     await ctx.send(embed=embed)
 
@@ -110,26 +161,48 @@ async def ping_command(ctx):
     embed = discord.Embed(description=f'Pong! Latency: {latency:.2f} ms', color=discord.Color.green())
     await message.edit(content='', embed=embed)
 
-@bot.command(name='stop')
-@commands.check(is_bot_owner)
-async def stop_command(ctx):
-    if not server_running:
-        embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
-        await ctx.send(embed=embed)
-        return
+@bot.command(name='status')
+async def status_command(ctx):
+    embed_color = discord.Color.red()  # Default color for stopped status
+    public_ip = await get_public_ip() if server_running else None
 
-    try:
-        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
-            response = rcon.command('stop')
-            embed = discord.Embed(description=':stop_button: Sent the `stop` command to the Minecraft server.', color=discord.Color.green())
-            await ctx.send(embed=embed)
-    except mcrcon.MCRconException as e:
-        embed = discord.Embed(description=':x: Failed to send the `stop` command to the Minecraft server.', color=discord.Color.red())
-        await ctx.send(embed=embed)
+    if server_running:
+        embed_color = discord.Color.green()  # Color for running status
+        try:
+            host, port = public_ip.replace('tcp://', '').split(':')[:2] if ':' in public_ip else (public_ip, '25565')
+
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.settimeout(3)  # Set a timeout for the socket connection
+                result = sock.connect_ex((host, int(port)))
+
+            if result != 0:
+                embed_color = discord.Color.red()  # Update color to red if the port is closed
+        except Exception as e:
+            print(f'Failed to check server status: {str(e)}')
+
+    embed = discord.Embed(title='Server Status', color=embed_color)
+    embed.add_field(name='Status', value='Running' if server_running else 'Stopped', inline=False)
+    embed.add_field(name='IP', value=public_ip.replace('tcp://', '') if server_running else 'N/A', inline=False)
+
+    if server_running:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.settimeout(3)  # Set a timeout for the socket connection
+                start_time = time.time()
+                result = sock.connect_ex((host, int(port)))
+                end_time = time.time()
+
+            if result == 0:
+                ping_ms = round((end_time - start_time) * 1000, 2)
+                embed.add_field(name='Ping', value=f'Latency: {ping_ms} ms', inline=False)
+            else:
+                embed.add_field(name='Ping', value='Failed to ping server: Port is closed', inline=False)
+        except Exception as e:
+            embed.add_field(name='Ping', value=f'Failed to ping server: {str(e)}', inline=False)
+
+    await ctx.send(embed=embed)
 
 async def get_public_ip():
-    time.sleep(30)
-
     try:
         response = requests.get('http://localhost:4040/api/tunnels')
         response.raise_for_status()

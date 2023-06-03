@@ -1,4 +1,4 @@
-:: version 1.0.2
+:: version 1.0.3
 @echo off
 title Minecraft Manager Script
 :: ===================================VAR+CHECKS===================================
@@ -143,7 +143,8 @@ echo [RUNNING] A stop job is running for Ngrok...
 taskkill -im ngrok.exe /f
 timeout /t 1 /nobreak > nul
 echo [RUNNING] Restarting bot to update server status :P
-taskkill -im python3.11.exe /f > nul
+taskkill -im py.exe /f > nul
+taskkill -im python.exe /f > nul
 start /min cmd /c "%~dp0bot.bat"
 echo [ Note ] Anyways.. I'll be going now, Bye!
 timeout /t 3 /nobreak > nul
