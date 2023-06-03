@@ -21,7 +21,7 @@ if %errorlevel% == 0 goto :install
 :: ===================================CHECK===================================
 
 if /I "%debug%" == "on" echo Any errors with checking for updates should appear here:
-curl --output releases.tmp -L https://api.github.com/repos/yuri010/minecraft-manager/releases
+curl --output releases.tmp -L https://api.github.com/repos/yuri010/minecraft-manager/releases/latest
 if /I "%debug%" == "on" echo. & pause
 for /F "tokens=2 delims= " %%a IN ('findstr /I "tag_name" releases.tmp') DO set gver=%%a
 for /F "tokens=1 delims=," %%b IN ("%gver%") DO set gver=%%b
