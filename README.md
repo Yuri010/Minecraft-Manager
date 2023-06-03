@@ -54,6 +54,14 @@ TL;DR, you are allowed to-
  </details>
 
 ## Part 3: Configuration
+
+### Automatic Configuration
+After finishing [Part 2: Server Setup]([#part-2-server-setup) you should still have a CMD Window asking for some details.
+I made this to make it easier! Simply just enter the required values (bot token, your own Discord ID and an RCON password) and it should configure everything automatically!
+
+<details>
+  <summary>Manual Configuration (just why would you?)</summary>
+ 
  1. Authenticate Ngrok (Once you create an account you should see instructions right on the dashboard)
     1. Open Command Prompt and navigate to the server directory (e.g. ``cd %userprofile%\Documents\Server``) will navigate to C:\Users\<Username>\Documents\Server
     2. Type ``ngrok config add-authtoken YOUR_TOKEN``, replace ``YOUR_TOKEN`` with the token displayed on the Ngrok Dashboard
@@ -87,6 +95,8 @@ port = 25565
 maxram = 4096M
 minram = 1024M
 ```
+ 
+</details>
 
 ## Part 4: Running it all
 After having followed the full setup, everything should be installed and configured correctly.
