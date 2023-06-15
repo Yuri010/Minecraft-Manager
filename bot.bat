@@ -5,6 +5,6 @@ set debug=off
 echo %* | find /I "-debug"
 if /I "%errorlevel%" EQU "0" set debug=on
 cd %~dp0
-py bot.py
+python bot.py
 if /I "%debug%" EQU "on" pause
 exit

@@ -29,7 +29,7 @@ set "maxram=%maxram: =%"
 set "minram=%minram: =%"
 cd ..
 set workdir=%cd%
-set command=java -Xmx%maxram% -Xms%minram% -jar "%workdir%\%jar%" nogui
+set command=java -Xmx%maxram% -Xms%minram% -DIReallyKnowWhatIAmDoingISwear -jar "%workdir%\%jar%" nogui
 java -version
 if /I "%errorlevel%" NEQ "0" (
     cls
