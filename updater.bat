@@ -74,7 +74,7 @@ curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/star
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.bat -o bot-new.bat
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.py -o bot-new.py
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/updater.bat -o updater-new.bat
-if %newinstall == true (
+if %newinstall% == true (
     curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/eula.vbs -o eula.vbs
     move eula.vbs %~dp0eula.vbs
 )
