@@ -1,4 +1,4 @@
-:: version 1.0.3
+:: version 1.0.4
 @echo off
 title Minecraft-Manager Updater
 cd %~dp0
@@ -74,6 +74,11 @@ curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/star
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.bat -o bot-new.bat
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.py -o bot-new.py
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/updater.bat -o updater-new.bat
+if %newinstall == true (
+    cd ..
+    curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/eula.vbs -o eula.vbs
+    cd scripts
+)
 if NOT exist config.cfg (
     cls
     echo NOTE: EXISTING CONFIG COULD NOT BE FOUND, DOWNLOADING TEMPLATE...
@@ -88,6 +93,16 @@ move bot-new.py bot.py
 if NOT exist config.cfg move config-new.cfg config.cfg
 timeout 1 > nul
 if "%newinstall%" == "true" (
+cls
+echo It looks like this is a new installation
+echo The script will automatically attempt to edit the EULA file to agree to the Minecraft Server EULA
+echo PLEASE DO NOT TOUCH YOUR COMPUTER DURING THIS Part
+echo.
+echo The script will continue in 3 seconds
+echo DO NOT TOUCH YOUR PC
+timeout /t 3 /nobreak > nul
+eula.vbs
+timeout /t 1 /nobreak > nul
 move updater-new.bat updater.bat"
 start "" "cmd /c "%~dp0scripts/updater.bat" -configure
 cd ..
@@ -158,11 +173,7 @@ echo.
 echo Downloading the %server% Server JAR (1.19.4)
 curl --progress-bar %dwdlk% -o server.jar
 java -jar server.jar nogui
-set "propertyFile=eula.txt"
-set "var=eula"
-set "value=false"
-set "newValue=true"
-call :replprop
+timeout /t 2 /nobreak > nul
 cls
 :continue
 echo Downloading Ngrok
@@ -186,6 +197,7 @@ cls
 setlocal enabledelayedexpansion
 set "configFile=config.cfg"
 set "propertyFile=%propdir%\server.properties"
+
 echo Part 3 - Configuration
 echo Step 1/2: config.cfg
 echo.
@@ -195,6 +207,7 @@ echo Please enter your bot token:
 set /p "newValue="
 call :replconfig
 cls
+
 echo Part 3 - Configuration
 echo Step 1/2: config.cfg
 echo.
@@ -204,6 +217,7 @@ echo Please enter your Discord User ID:
 set /p "newValue="
 call :replconfig
 cls
+
 echo Part 3 - Configuration
 echo Step 1/2: config.cfg
 echo.
@@ -214,6 +228,7 @@ set /p "rconpass="
 set "newValue=%rconpass%"
 call :replconfig
 cls
+
 echo Part 3 - Configuration
 echo Step 2/2: server.properties
 echo.
@@ -227,6 +242,21 @@ set "value="
 set "newValue=%rconpass%"
 call :replprop
 cls
+
+echo Part 3 - Configuration
+echo Step 2/2: server.properties
+echo.
+echo would you like to enable Command Blocks?
+choice /N
+if %errorlevel% == 2 cls
+if %errorlevel% == 1 (
+    set "var=enable-command-block"
+    set "value=false"
+    set "newValue=true"
+    call :replprop
+    cls
+)
+
 echo Configuration Done.
 echo Enjoy!
 timeout /t 3 /nobreak > nul

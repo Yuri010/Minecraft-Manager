@@ -1,4 +1,4 @@
-# version 1.0.3
+# version 1.0.4
 import discord
 from discord.ext import commands
 import subprocess
@@ -65,9 +65,19 @@ async def start(ctx):
         embed = discord.Embed(description=f':x: An error occurred while starting the server: {str(e)}', color=discord.Color.red())
         await message.edit(embed=embed)
 
+@start.error
+async def start_error(ctx, error):
+    if isinstance(error, commands.CheckFailure):
+        embed = discord.Embed(
+            title="❌ Missing Role",
+            description=f"You are missing the '{required_role}' role to start the server.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+
 @bot.command(name='stop')
 @commands.check(is_bot_owner)
-async def stop_command(ctx):
+async def stop(ctx):
     if not server_running:
         embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
         await ctx.send(embed=embed)
@@ -80,21 +90,16 @@ async def stop_command(ctx):
             await ctx.send(embed=embed)
     except mcrcon.MCRconException as e:
         embed = discord.Embed(description=':x: Failed to send the `stop` command to the Minecraft server.', color=discord.Color.red())
-        await ctx.send(embed=embed)@bot.command(name='stop')
-@commands.check(is_bot_owner)
-async def stop_command(ctx):
-    if not server_running:
-        embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
         await ctx.send(embed=embed)
-        return
 
-    try:
-        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
-            response = rcon.command('stop')
-            embed = discord.Embed(description=':stop_button: Sent the `stop` command to the Minecraft server.', color=discord.Color.green())
-            await ctx.send(embed=embed)
-    except mcrcon.MCRconException as e:
-        embed = discord.Embed(description=':x: Failed to send the `stop` command to the Minecraft server.', color=discord.Color.red())
+@stop.error
+async def stop_error(ctx, error):
+    if isinstance(error, commands.CheckFailure):
+        embed = discord.Embed(
+            title="❌ Missing Permissions",
+            description=f"Only the Minecraft Server Owner can issue this command.",
+            color=discord.Color.red()
+        )
         await ctx.send(embed=embed)
 
 @bot.command(name='shutdown')
@@ -103,6 +108,16 @@ async def shutdown_bot(ctx):
     embed = discord.Embed(description=':stop_button: Shutting down the bot...', color=discord.Color.red())
     await ctx.send(embed=embed)
     await bot.close()
+
+@shutdown_bot.error
+async def shutdown_error(ctx, error):
+    if isinstance(error, commands.CheckFailure):
+        embed = discord.Embed(
+            title="❌ Missing Permissions",
+            description=f"Only the Minecraft Server Owner can issue this command.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
 
 @bot.command(name='info')
 async def info_command(ctx):
@@ -148,6 +163,16 @@ async def console_command(ctx, *, command):
     except mcrcon.MCRconException as e:
         embed = discord.Embed(title='Minecraft Console', description=f'Command: {command}', color=discord.Color.red())
         embed.add_field(name='Error', value=str(e))
+        await ctx.send(embed=embed)
+
+@console_command.error
+async def console_error(ctx, error):
+    if isinstance(error, commands.CheckFailure):
+        embed = discord.Embed(
+            title="❌ Missing Permissions",
+            description=f"Only the Minecraft Server Owner can issue this command.",
+            color=discord.Color.red()
+        )
         await ctx.send(embed=embed)
 
 @bot.command(name='ping')
