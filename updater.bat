@@ -74,14 +74,14 @@ curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/star
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.bat -o bot-new.bat
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.py -o bot-new.py
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/updater.bat -o updater-new.bat
-if %newinstall% == true (
+if %newinstall == true (
     curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/eula.vbs -o eula.vbs
     move eula.vbs %~dp0eula.vbs
 )
 if NOT exist config.cfg (
     cls
     echo NOTE: EXISTING CONFIG COULD NOT BE FOUND, DOWNLOADING TEMPLATE...
-    curl -0 -L --progress-bar https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/config.cfg -o config-new.cfg
+    curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/config.cfg -o config-new.cfg
 )
 echo.
 echo =========================================================================================================
@@ -100,7 +100,7 @@ echo.
 echo The script will continue in 3 seconds
 echo DO NOT TOUCH YOUR PC
 timeout /t 3 /nobreak > nul
-%~dp0eula.vbs
+%~dp0eula.vbs "%~dp0eula.txt"
 timeout /t 1 /nobreak > nul
 move updater-new.bat updater.bat"
 start "" "cmd /c "%~dp0scripts/updater.bat" -configure
