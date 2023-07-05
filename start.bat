@@ -128,6 +128,7 @@ echo [BACKGROUND] Starting Minecraft Server...
 echo [SUCCESS] Waiting for Minecraft Server link state to become UP (Attempt %ctries%/5)
 echo [RUNNING] A start job is running for Ngrok...
 start /min ngrok tcp %port%
+mklink /H "%~dp0ops.json" "%workdir%\ops.json"
 cls
 echo Starting Server (Step 2/2)
 echo [SUCCESS] Starting Minecraft Server... Done.
