@@ -1,4 +1,4 @@
-:: version 1.0.4
+:: version 1.1.0
 @echo off
 title Minecraft Manager Script
 :: ===================================VAR+CHECKS===================================

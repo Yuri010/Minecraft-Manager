@@ -1,4 +1,4 @@
-:: version 1.0.4
+:: version 1.1
 @echo off
 title Discord - Minecraft Manager Bot
 set debug=off
