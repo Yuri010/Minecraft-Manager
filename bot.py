@@ -1,4 +1,4 @@
-# version 1.0.4
+# version 1.1
 import discord
 from discord.ext import commands
 import subprocess
@@ -8,6 +8,16 @@ import mcrcon
 import configparser
 import socket
 import asyncio
+import sqlite3
+import random
+import json
+
+conn = sqlite3.connect('verification.db')
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS verification (
+                discord_id INTEGER PRIMARY KEY,
+                minecraft_name TEXT
+            )''')
 
 config = configparser.ConfigParser()
 config.read('config.cfg')
@@ -54,7 +64,7 @@ async def start(ctx):
         public_ip = await get_public_ip()
         if public_ip:
             public_ip = public_ip.replace('tcp://', '')  # Remove the "tcp://" prefix
-            embed.description = ':white_check_mark: The Minecraft server has started successfully.'
+            embed.title = ':white_check_mark: The Minecraft server has started successfully.'
             embed.description += f"\n\nThe server is now accessible at: **{public_ip}**"
             await message.edit(embed=embed)
         else:
@@ -76,8 +86,29 @@ async def start_error(ctx, error):
         await ctx.send(embed=embed)
 
 @bot.command(name='stop')
-@commands.check(is_bot_owner)
-async def stop(ctx):
+async def stop_command(ctx):
+    # Check if the user has verified their Minecraft account
+    discord_id = ctx.author.id
+    c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
+    result = c.fetchone()
+    if result is None:
+        embed = discord.Embed(
+            description=':x: You need to verify your Minecraft account first using the `$verify` command.',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+
+    # Check if the user has operator privileges or is the owner
+    minecraft_username = result[1]
+    if not has_operator(minecraft_username) and not is_bot_owner(ctx):
+        embed = discord.Embed(
+            description=':x: You do not have permission to use this command.',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+    
     if not server_running:
         embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
         await ctx.send(embed=embed)
@@ -90,16 +121,6 @@ async def stop(ctx):
             await ctx.send(embed=embed)
     except mcrcon.MCRconException as e:
         embed = discord.Embed(description=':x: Failed to send the `stop` command to the Minecraft server.', color=discord.Color.red())
-        await ctx.send(embed=embed)
-
-@stop.error
-async def stop_error(ctx, error):
-    if isinstance(error, commands.CheckFailure):
-        embed = discord.Embed(
-            title="❌ Missing Permissions",
-            description=f"Only the Minecraft Server Owner can issue this command.",
-            color=discord.Color.red()
-        )
         await ctx.send(embed=embed)
 
 @bot.command(name='shutdown')
@@ -147,13 +168,29 @@ async def info_command(ctx):
     await ctx.send(embed=embed)
 
 @bot.command(name='console')
-@commands.check(is_bot_owner)
 async def console_command(ctx, *, command):
-    if not server_running:
-        embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
+    # Check if the user has verified their Minecraft account
+    discord_id = ctx.author.id
+    c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
+    result = c.fetchone()
+    if result is None:
+        embed = discord.Embed(
+            description=':x: You need to verify your Minecraft account first using the `$verify` command.',
+            color=discord.Color.red()
+        )
         await ctx.send(embed=embed)
         return
 
+    # Check if the user has operator privileges
+    minecraft_username = result[1]
+    if not has_operator(minecraft_username) and not is_bot_owner(ctx):
+        embed = discord.Embed(
+            description=':x: You do not have permission to use this command.',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+    
     try:
         with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
             response = rcon.command(command)
@@ -167,10 +204,10 @@ async def console_command(ctx, *, command):
 
 @console_command.error
 async def console_error(ctx, error):
-    if isinstance(error, commands.CheckFailure):
+    if isinstance(error, commands.MissingRequiredArgument):
         embed = discord.Embed(
-            title="❌ Missing Permissions",
-            description=f"Only the Minecraft Server Owner can issue this command.",
+            title="❌ Missing Argument",
+            description="Please provide a command to execute.",
             color=discord.Color.red()
         )
         await ctx.send(embed=embed)
@@ -243,6 +280,125 @@ async def get_public_ip():
     except Exception as e:
         print(f"Failed to retrieve public IP: {str(e)}")
         return None
+    
+@bot.command(name='verify')
+async def verify_command(ctx):
+    if not server_running:
+        embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
+        await ctx.send(embed=embed)
+        return
+
+    # Send a message in the server channel to start the verification process
+    embed = discord.Embed(
+        description='Verification process started. Please check your DMs.',
+        color=discord.Color.blue()
+    )
+    await ctx.send(embed=embed)
+
+    # Prompt the user to join the Minecraft server
+    dm_channel = await ctx.author.create_dm()
+    embed = discord.Embed(
+        description='Please join the Minecraft server and send your Minecraft username here.',
+        color=discord.Color.blue()
+    )
+    await dm_channel.send(embed=embed)
+
+    # Wait for the user's DM with their Minecraft username
+    def check_author(m):
+        return m.author == ctx.author and isinstance(m.channel, discord.DMChannel)
+
+    try:
+        message = await bot.wait_for('message', check=check_author, timeout=120)
+        minecraft_username = message.content
+    except asyncio.TimeoutError:
+        embed = discord.Embed(
+            description=':x: Verification process timed out.',
+            color=discord.Color.red()
+        )
+        await dm_channel.send(embed=embed)
+        return
+
+    # Execute the "list" command in the Minecraft server using MCRCON
+    try:
+        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
+            response = rcon.command('list')
+    except mcrcon.MCRconException as e:
+        embed = discord.Embed(
+            description=':x: An error occurred while executing the "list" command in the Minecraft server.',
+            color=discord.Color.red()
+        )
+        await dm_channel.send(embed=embed)
+        return
+
+    # Check if the user's Minecraft username is in the response
+    if minecraft_username not in response:
+        embed = discord.Embed(
+            description=':x: Your Minecraft username was not found Online on the server. Please try again.',
+            color=discord.Color.red()
+        )
+        await dm_channel.send(embed=embed)
+        return
+
+    # Generate a random verification code
+    verification_code = ''.join(random.choices('0123456789', k=6))
+
+    # Whisper the verification code to the user using MCRCON
+    try:
+        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
+            rcon.command(f'w {minecraft_username} Discord verification code: {verification_code}')
+    except mcrcon.MCRconException as e:
+        embed = discord.Embed(
+            description=':x: An error occurred while sending the verification code to the Minecraft server.',
+            color=discord.Color.red()
+        )
+        await dm_channel.send(embed=embed)
+        return
+
+    # Wait for the user's DM with the verification code
+    embed = discord.Embed(
+        description='A verification code has been sent to you in Minecraft. Please enter it here to complete the verification process.',
+        color=discord.Color.blue()
+    )
+    await dm_channel.send(embed=embed)
+
+    try:
+        message = await bot.wait_for('message', check=check_author, timeout=120)
+        user_code = message.content
+    except asyncio.TimeoutError:
+        embed = discord.Embed(
+            description=':x: Verification process timed out.',
+            color=discord.Color.red()
+        )
+        await dm_channel.send(embed=embed)
+        return
+
+    # Check if the verification code matches
+    if user_code != verification_code:
+        embed = discord.Embed(
+            description=':x: Incorrect verification code. Please try again.',
+            color=discord.Color.red()
+        )
+        await dm_channel.send(embed=embed)
+        return
+
+    # Add the user's Minecraft username and Discord ID to the database
+    discord_id = ctx.author.id
+    c.execute("INSERT OR REPLACE INTO verification VALUES (?, ?)", (discord_id, minecraft_username))
+    conn.commit()
+
+    embed = discord.Embed(
+        description=':white_check_mark: Verification successful! Your Minecraft account has been linked.',
+        color=discord.Color.green()
+    )
+    await dm_channel.send(embed=embed)
+
+def has_operator(minecraft_username):
+    with open('ops.json', 'r') as file:
+        ops_data = json.load(file)
+        for op in ops_data:
+            if op['name'] == minecraft_username:
+                return True
+    return False
 
 @bot.event
 async def on_ready():
