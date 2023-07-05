@@ -64,8 +64,11 @@ async def start(ctx):
         public_ip = await get_public_ip()
         if public_ip:
             public_ip = public_ip.replace('tcp://', '')  # Remove the "tcp://" prefix
-            embed.title = ':white_check_mark: The Minecraft server has started successfully.'
-            embed.description += f"\n\nThe server is now accessible at: **{public_ip}**"
+            embed = discord.Embed(
+                title = ':white_check_mark: The Minecraft server has started successfully.',
+                description = f"The server is now accessible at: **{public_ip}**",
+                color=discord.Color.green()
+            )
             await message.edit(embed=embed)
         else:
             embed = discord.Embed(description=':x: Failed to retrieve the public IP of the server.', color=discord.Color.red())
@@ -291,7 +294,7 @@ async def verify_command(ctx):
 
     # Send a message in the server channel to start the verification process
     embed = discord.Embed(
-        description='Verification process started. Please check your DMs.',
+        description=':rocket: Verification process started. Please check your DMs.',
         color=discord.Color.blue()
     )
     await ctx.send(embed=embed)
@@ -334,7 +337,7 @@ async def verify_command(ctx):
     # Check if the user's Minecraft username is in the response
     if minecraft_username not in response:
         embed = discord.Embed(
-            description=':x: Your Minecraft username was not found Online on the server. Please try again.',
+            description=':x: Your Minecraft username was not found online on the server. Please try again.',
             color=discord.Color.red()
         )
         await dm_channel.send(embed=embed)
@@ -357,7 +360,7 @@ async def verify_command(ctx):
 
     # Wait for the user's DM with the verification code
     embed = discord.Embed(
-        description='A verification code has been sent to you in Minecraft. Please enter it here to complete the verification process.',
+        description=':white_check_mark: A verification code has been sent to you in Minecraft. Please enter it here to complete the verification process.',
         color=discord.Color.blue()
     )
     await dm_channel.send(embed=embed)
