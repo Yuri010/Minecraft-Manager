@@ -150,7 +150,8 @@ async def info_command(ctx):
         '`start`: Starts the Minecraft Server and displays the IP',
         '`stop`: Stops the Minecraft Server',
         '`console <command>`: Send commands to the Minecraft Server',
-        '`status`: Shows the status of the Minecraft server'
+        '`status`: Shows the status of the Minecraft server',
+        '`verify`: Link your Minecraft and Discord account (Required for some commands)'
     ]
 
     # Miscellaneous Bot Commands
