@@ -1,4 +1,4 @@
-# version 1.1.0
+# version 1.2.0
 import discord
 from discord.ext import commands
 import subprocess
@@ -11,6 +11,9 @@ import asyncio
 import sqlite3
 import random
 import json
+import os
+import zipfile
+import shutil
 
 conn = sqlite3.connect('verification.db')
 c = conn.cursor()
@@ -18,6 +21,15 @@ c.execute('''CREATE TABLE IF NOT EXISTS verification (
                 discord_id INTEGER PRIMARY KEY,
                 minecraft_name TEXT
             )''')
+
+c.execute('''CREATE TABLE IF NOT EXISTS snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                filename TEXT,
+                path TEXT,
+                file_size INTEGER,
+                date TEXT,
+                notes TEXT
+            )''')   
 
 config = configparser.ConfigParser()
 config.read('config.cfg')
@@ -403,6 +415,81 @@ def has_operator(minecraft_username):
             if op['name'] == minecraft_username:
                 return True
     return False
+
+@bot.command(name='snapshots')
+async def snapshots_command(ctx, action=None):
+    if action == 'create':
+        await create_snapshot(ctx)
+    else:
+        await list_snapshots(ctx)
+
+async def list_snapshots(ctx):
+    c.execute("SELECT * FROM snapshots")
+    snapshots = c.fetchall()
+
+    if not snapshots:
+        embed = discord.Embed(description='No snapshots available.', color=discord.Color.blue())
+    else:
+        embed = discord.Embed(title='World Snapshots', color=discord.Color.blue())
+        for snapshot in snapshots:
+            embed.add_field(name=f'Snapshot {snapshot[0]}', value=f'**Date:** {snapshot[4]}\n**Notes:** {snapshot[5]}', inline=False)
+
+    await ctx.send(embed=embed)
+
+async def create_snapshot(ctx):
+    # Check if the server is running
+    if server_running:
+        embed = discord.Embed(description=':x: Cannot create a snapshot while the server is running.', color=discord.Color.red())
+        await ctx.send(embed=embed)
+        return
+
+    # Gather snapshot metadata from the user
+    embed = discord.Embed(title='Please provide metadata for the snapshot.', color=discord.Color.blue())
+    embed.add_field(name='Notes', value='Enter a note or description for this snapshot.', inline=False)
+    await ctx.send(embed=embed) 
+
+    def check_author(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+    
+    #embed = discord.Embed(description=':x: Snapshot function not yet implemented.', color=discord.Color.red())
+    #await ctx.send(embed=embed)
+    #return
+
+    temp_folder = "temp_snapshot"
+    os.makedirs(temp_folder, exist_ok=True)
+
+    try:
+        # Copy world folders to the temporary folder
+        world_folders = ["world", "world_nether", "world_the_end"]
+        for folder in world_folders:
+            shutil.copytree(os.path.join("..", folder), os.path.join(temp_folder, folder))
+
+        # Compress the snapshot
+        snapshot_filename = f"snapshot_{int(time.time())}.zip"
+        snapshot_path = os.path.join("scripts\snapshots", snapshot_filename)
+        with zipfile.ZipFile(snapshot_path, 'w') as snapshot_zip:
+            for folder in world_folders:
+                snapshot_zip.write(os.path.join(temp_folder, folder), arcname=folder, compress_type=zipfile.ZIP_DEFLATED)
+
+        # Get the file size
+        file_size = os.path.getsize(snapshot_path)
+
+        # Add snapshot metadata to the database
+        current_date = time.strftime('%Y-%m-%d %H:%M:%S')
+        c.execute("INSERT INTO snapshots (filename, path, file_size, date, notes) VALUES (?, ?, ?, ?, ?)",
+                  (snapshot_filename, snapshot_path, file_size, current_date))
+        conn.commit()
+
+        embed = discord.Embed(description=':white_check_mark: Snapshot created successfully.', color=discord.Color.green())
+        await ctx.send(embed=embed)
+
+    except Exception as e:
+        embed = discord.Embed(description=f':x: Failed to create snapshot: {str(e)}', color=discord.Color.red())
+        await ctx.send(embed=embed)
+
+    finally:
+        # Clean up: Remove the temporary folder
+        shutil.rmtree(temp_folder, ignore_errors=True)
 
 @bot.event
 async def on_ready():
