@@ -12,10 +12,9 @@ import sqlite3
 import random
 import json
 import os
-import zipfile
 import shutil
 
-conn = sqlite3.connect('verification.db')
+conn = sqlite3.connect('minecraft_manager.db')
 c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS verification (
                 discord_id INTEGER PRIMARY KEY,
@@ -25,11 +24,12 @@ c.execute('''CREATE TABLE IF NOT EXISTS verification (
 c.execute('''CREATE TABLE IF NOT EXISTS snapshots (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 filename TEXT,
+                fancy_name TEXT,
                 path TEXT,
                 file_size INTEGER,
                 date TEXT,
                 notes TEXT
-            )''')   
+            )''')
 
 config = configparser.ConfigParser()
 config.read('config.cfg')
@@ -75,7 +75,7 @@ async def start(ctx):
         await asyncio.sleep(45)
         public_ip = await get_public_ip()
         if public_ip:
-            public_ip = public_ip.replace('tcp://', '')  # Remove the "tcp://" prefix
+            public_ip = public_ip.replace('tcp://', '')
             embed = discord.Embed(
                 title = ':white_check_mark: The Minecraft server has started successfully.',
                 description = f"The server is now accessible at: **{public_ip}**",
@@ -102,7 +102,6 @@ async def start_error(ctx, error):
 
 @bot.command(name='stop')
 async def stop_command(ctx):
-    # Check if the user has verified their Minecraft account
     discord_id = ctx.author.id
     c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
     result = c.fetchone()
@@ -114,7 +113,6 @@ async def stop_command(ctx):
         await ctx.send(embed=embed)
         return
 
-    # Check if the user has operator privileges or is the owner
     minecraft_username = result[1]
     if not has_operator(minecraft_username) and not is_bot_owner(ctx):
         embed = discord.Embed(
@@ -160,32 +158,33 @@ async def info_command(ctx):
     prefix = bot.command_prefix
     bot_user = bot.user
 
-    # Minecraft Server Commands
-    minecraft_commands = [
+    minecrafter_commands = [
         '`start`: Starts the Minecraft Server and displays the IP',
-        '`stop`: Stops the Minecraft Server',
-        '`console <command>`: Send commands to the Minecraft Server',
         '`status`: Shows the status of the Minecraft server',
         '`verify`: Link your Minecraft and Discord account (Required for some commands)'
     ]
 
-    # Miscellaneous Bot Commands
+    operator_commands = [
+        '`snapshots <list / create>`: List or create world snapshots',
+        '`console <command>`: Send commands to the Minecraft Server',
+        '`stop`: Stops the Minecraft Server'
+    ]
+
     bot_commands = [
         '`ping`: Pong!',
-        '`info`: Display this info message',
-        '`shutdown`: Shuts down the Discord bot'
+        '`info`: Display this info message'
     ]
 
     embed = discord.Embed(description=f"Hi! I am a simple Discord bot made by <@603158153638707242>.\nI am designed to manage Minecraft servers from within Discord.\n\nMy current prefix is: `{prefix}`", color=discord.Color.blue())
     embed.set_author(name=f'Minecraft Manager', icon_url=bot_user.avatar.url)
-    embed.add_field(name='Minecraft Server Commands', value='\n'.join(minecraft_commands), inline=False)
+    embed.add_field(name='Minecrafter Commands', value='\n'.join(minecrafter_commands), inline=False)
+    embed.add_field(name='Operator Commands', value='\n'.join(operator_commands), inline=False)
     embed.add_field(name='Miscellaneous Bot Commands', value='\n'.join(bot_commands), inline=False)
 
     await ctx.send(embed=embed)
 
 @bot.command(name='console')
 async def console_command(ctx, *, command):
-    # Check if the user has verified their Minecraft account
     discord_id = ctx.author.id
     c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
     result = c.fetchone()
@@ -197,7 +196,6 @@ async def console_command(ctx, *, command):
         await ctx.send(embed=embed)
         return
 
-    # Check if the user has operator privileges
     minecraft_username = result[1]
     if not has_operator(minecraft_username) and not is_bot_owner(ctx):
         embed = discord.Embed(
@@ -234,27 +232,27 @@ async def ping_command(ctx):
     message = await ctx.send('Pinging...')
     end_time = time.time()
 
-    latency = (end_time - start_time) * 1000  # Convert to milliseconds
+    latency = (end_time - start_time) * 1000
 
     embed = discord.Embed(description=f'Pong! Latency: {latency:.2f} ms', color=discord.Color.green())
     await message.edit(content='', embed=embed)
 
 @bot.command(name='status')
 async def status_command(ctx):
-    embed_color = discord.Color.red()  # Default color for stopped status
+    embed_color = discord.Color.red()
     public_ip = await get_public_ip() if server_running else None
 
     if server_running:
-        embed_color = discord.Color.green()  # Color for running status
+        embed_color = discord.Color.green()
         try:
             host, port = public_ip.replace('tcp://', '').split(':')[:2] if ':' in public_ip else (public_ip, '25565')
 
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(3)  # Set a timeout for the socket connection
+                sock.settimeout(3)
                 result = sock.connect_ex((host, int(port)))
 
             if result != 0:
-                embed_color = discord.Color.red()  # Update color to red if the port is closed
+                embed_color = discord.Color.red()
         except Exception as e:
             print(f'Failed to check server status: {str(e)}')
 
@@ -265,7 +263,7 @@ async def status_command(ctx):
     if server_running:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(3)  # Set a timeout for the socket connection
+                sock.settimeout(3)
                 start_time = time.time()
                 result = sock.connect_ex((host, int(port)))
                 end_time = time.time()
@@ -304,24 +302,20 @@ async def verify_command(ctx):
         await ctx.send(embed=embed)
         return
 
-    # Check if the user is already verified
     discord_id = ctx.author.id
     c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
     result = c.fetchone()
 
     if result:
-        # User is already verified, prompt to restart or abort
         embed = discord.Embed(
             description=':warning: You are already verified. React with ✅ to restart verification or ❌ to abort.',
             color=discord.Color.orange()
         )
         message = await ctx.send(embed=embed)
 
-        # Add reactions
         await message.add_reaction('✅')
         await message.add_reaction('❌')
 
-        # Wait for reaction
         def check(reaction, user):
             return user == ctx.author and reaction.message.id == message.id and str(reaction.emoji) in ['✅', '❌']
 
@@ -336,10 +330,8 @@ async def verify_command(ctx):
             return
 
         if str(reaction.emoji) == '✅':
-            # Restart verification
             await message.delete()
         else:
-            # Abort verification
             embed = discord.Embed(
                 description=':x: Verification process aborted.',
                 color=discord.Color.red()
@@ -347,14 +339,12 @@ async def verify_command(ctx):
             await message.edit(embed=embed)
             return
 
-    # Send a message in the server channel to start the verification process
     embed = discord.Embed(
         description=':rocket: Verification process started. Please check your DMs.',
         color=discord.Color.blue()
     )
     await ctx.send(embed=embed)
 
-    # Prompt the user to join the Minecraft server
     dm_channel = await ctx.author.create_dm()
     embed = discord.Embed(
         description='Please join the Minecraft server and send your Minecraft username here.',
@@ -362,7 +352,6 @@ async def verify_command(ctx):
     )
     await dm_channel.send(embed=embed)
 
-    # Wait for the user's DM with their Minecraft username
     def check_author(m):
         return m.author == ctx.author and isinstance(m.channel, discord.DMChannel)
 
@@ -377,7 +366,6 @@ async def verify_command(ctx):
         await dm_channel.send(embed=embed)
         return
 
-    # Execute the "list" command in the Minecraft server using MCRCON
     try:
         with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
             response = rcon.command('list')
@@ -389,7 +377,6 @@ async def verify_command(ctx):
         await dm_channel.send(embed=embed)
         return
 
-    # Check if the user's Minecraft username is in the response
     if minecraft_username not in response:
         embed = discord.Embed(
             description=':x: Your Minecraft username was not found online on the server. Please try again.',
@@ -398,10 +385,8 @@ async def verify_command(ctx):
         await dm_channel.send(embed=embed)
         return
 
-    # Generate a random verification code
     verification_code = ''.join(random.choices('0123456789', k=6))
 
-    # Whisper the verification code to the user using MCRCON
     try:
         with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
             rcon.command(f'w {minecraft_username} Discord verification code: {verification_code}')
@@ -413,7 +398,6 @@ async def verify_command(ctx):
         await dm_channel.send(embed=embed)
         return
 
-    # Wait for the user's DM with the verification code
     embed = discord.Embed(
         description=':white_check_mark: A verification code has been sent to you in Minecraft. Please enter it here to complete the verification process.',
         color=discord.Color.blue()
@@ -431,7 +415,6 @@ async def verify_command(ctx):
         await dm_channel.send(embed=embed)
         return
 
-    # Check if the verification code matches
     if user_code != verification_code:
         embed = discord.Embed(
             description=':x: Incorrect verification code. Please try again.',
@@ -440,7 +423,6 @@ async def verify_command(ctx):
         await dm_channel.send(embed=embed)
         return
 
-    # Add the user's Minecraft username and Discord ID to the database
     discord_id = ctx.author.id
     c.execute("INSERT OR REPLACE INTO verification VALUES (?, ?)", (discord_id, minecraft_username))
     conn.commit()
@@ -466,61 +448,60 @@ async def snapshots_command(ctx, action=None):
     else:
         await list_snapshots(ctx)
 
-async def list_snapshots(ctx):
-    c.execute("SELECT * FROM snapshots")
-    snapshots = c.fetchall()
-
-    if not snapshots:
-        embed = discord.Embed(description='No snapshots available.', color=discord.Color.blue())
-    else:
-        embed = discord.Embed(title='World Snapshots', color=discord.Color.blue())
-        for snapshot in snapshots:
-            embed.add_field(name=f'Snapshot {snapshot[0]}', value=f'**Date:** {snapshot[4]}\n**Notes:** {snapshot[5]}', inline=False)
-
-    await ctx.send(embed=embed)
-
 async def create_snapshot(ctx):
-    # Check if the server is running
     if server_running:
         embed = discord.Embed(description=':x: Cannot create a snapshot while the server is running.', color=discord.Color.red())
         await ctx.send(embed=embed)
         return
 
-    # Gather snapshot metadata from the user
-    embed = discord.Embed(title='Please provide metadata for the snapshot.', color=discord.Color.blue())
-    embed.add_field(name='Notes', value='Enter a note or description for this snapshot.', inline=False)
-    await ctx.send(embed=embed) 
-
-    def check_author(m):
-        return m.author == ctx.author and m.channel == ctx.channel
-    
-    #embed = discord.Embed(description=':x: Snapshot function not yet implemented.', color=discord.Color.red())
-    #await ctx.send(embed=embed)
-    #return
-
     temp_folder = "temp_snapshot"
     os.makedirs(temp_folder, exist_ok=True)
 
     try:
-        # Copy world folders to the temporary folder
+        script_path = os.path.dirname(os.path.abspath(__file__))
+        snapshots_folder = os.path.join(script_path, "snapshots")
+
         world_folders = ["world", "world_nether", "world_the_end"]
         for folder in world_folders:
-            shutil.copytree(os.path.join("..", folder), os.path.join(temp_folder, folder))
+            shutil.copytree(os.path.join(script_path, "..", folder), os.path.join(temp_folder, folder))
 
-        # Compress the snapshot
-        snapshot_filename = f"snapshot_{int(time.time())}.zip"
-        snapshot_path = os.path.join("scripts\snapshots", snapshot_filename)
-        with zipfile.ZipFile(snapshot_path, 'w') as snapshot_zip:
-            for folder in world_folders:
-                snapshot_zip.write(os.path.join(temp_folder, folder), arcname=folder, compress_type=zipfile.ZIP_DEFLATED)
+        embed = discord.Embed(
+            description='🗒️ Please provide a name for this snapshot.',
+            color=discord.Color.blue()
+        )
+        await ctx.send(embed=embed)
 
-        # Get the file size
-        file_size = os.path.getsize(snapshot_path)
+        def check_author(m):
+            return m.author == ctx.author and m.channel == ctx.channel
 
-        # Add snapshot metadata to the database
+        try:
+            message = await bot.wait_for('message', check=check_author, timeout=120)
+            snapshot_name = message.content
+        except asyncio.TimeoutError:
+            snapshot_name = f"Snapshot {int(time.time())}"
+
+        embed = discord.Embed(
+            description='🗒️ Please provide a description for this snapshot.',
+            color=discord.Color.blue()
+        )
+        await ctx.send(embed=embed)
+
+        try:
+            message = await bot.wait_for('message', check=check_author, timeout=120)
+            snapshot_description = message.content
+        except asyncio.TimeoutError:
+            snapshot_description = ""
+
+        snapshot_filename = f"snapshot_{int(time.time())}"
+        snapshot_path = os.path.join(snapshots_folder, snapshot_filename)
+
+        shutil.make_archive(snapshot_path, 'zip', temp_folder)
+
+        file_size = os.path.getsize(f"{snapshot_path}.zip")
+
         current_date = time.strftime('%Y-%m-%d %H:%M:%S')
-        c.execute("INSERT INTO snapshots (filename, path, file_size, date, notes) VALUES (?, ?, ?, ?, ?)",
-                  (snapshot_filename, snapshot_path, file_size, current_date))
+        c.execute("INSERT INTO snapshots (filename, fancy_name, path, file_size, date, notes) VALUES (?, ?, ?, ?, ?, ?)",
+                  (f"{snapshot_filename}.zip", snapshot_name, f"{snapshot_path}.zip", file_size, current_date, snapshot_description))
         conn.commit()
 
         embed = discord.Embed(description=':white_check_mark: Snapshot created successfully.', color=discord.Color.green())
@@ -531,8 +512,42 @@ async def create_snapshot(ctx):
         await ctx.send(embed=embed)
 
     finally:
-        # Clean up: Remove the temporary folder
         shutil.rmtree(temp_folder, ignore_errors=True)
+
+async def list_snapshots(ctx):
+    c.execute("SELECT * FROM snapshots")
+    snapshots = c.fetchall()
+
+    normal_embed = discord.Embed(color=discord.Color.blue())
+
+    excluded_entries = []
+
+    for snapshot in snapshots:
+        file_path = snapshot[3]
+
+        if not os.path.exists(file_path):
+            excluded_entries.append(snapshot[0])
+            continue
+
+        file_size_mb = round(snapshot[4] / (1024 * 1024), 2)
+        normal_embed.add_field(
+            name=f'{snapshot[1]} - {snapshot[2]}',
+            value=f'**Date:** {snapshot[5]}\n**File Size:** {file_size_mb} MB\n**Notes:** {snapshot[6]}',
+            inline=False
+        )
+
+    if excluded_entries:
+        c.executemany("DELETE FROM snapshots WHERE id=?", [(entry_id,) for entry_id in excluded_entries])
+        conn.commit()
+        normal_embed.set_footer(text=f"Removed {len(excluded_entries)} entries that could not be found.", icon_url="")
+
+    normal_embed.title = 'World Snapshots'
+
+    if normal_embed.fields:
+        await ctx.send(embed=normal_embed)
+    else:
+        normal_embed.description = 'No snapshots available.'
+        await ctx.send(embed=normal_embed)
 
 @bot.event
 async def on_ready():
