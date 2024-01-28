@@ -434,15 +434,43 @@ async def verify_command(ctx):
     await dm_channel.send(embed=embed)
 
 def has_operator(minecraft_username):
-    with open('ops.json', 'r') as file:
-        ops_data = json.load(file)
-        for op in ops_data:
-            if op['name'] == minecraft_username:
-                return True
-    return False
+    try:
+        with open('ops.json', 'r') as file:
+            if os.stat('ops.json').st_size == 0:
+                print("Error at 'has_operator': ops.json is empty.")
+                return False
+
+            ops_data = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("Error at 'has_operator': Failed loading ops.json.")
+        return False
+
+    for op in ops_data:
+        if op['name'] == minecraft_username:
+            return True
 
 @bot.command(name='snapshots')
 async def snapshots_command(ctx, action=None):
+    discord_id = ctx.author.id
+    c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
+    result = c.fetchone()
+    if result is None:
+        embed = discord.Embed(
+            description=':x: You need to verify your Minecraft account first using the `$verify` command.',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+
+    minecraft_username = result[1]
+    if not has_operator(minecraft_username) and not is_bot_owner(ctx):
+        embed = discord.Embed(
+            description=':x: You do not have permission to use this command.',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+    
     if action == 'create':
         await create_snapshot(ctx)
     else:
