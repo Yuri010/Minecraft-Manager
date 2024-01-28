@@ -304,6 +304,49 @@ async def verify_command(ctx):
         await ctx.send(embed=embed)
         return
 
+    # Check if the user is already verified
+    discord_id = ctx.author.id
+    c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
+    result = c.fetchone()
+
+    if result:
+        # User is already verified, prompt to restart or abort
+        embed = discord.Embed(
+            description=':warning: You are already verified. React with ✅ to restart verification or ❌ to abort.',
+            color=discord.Color.orange()
+        )
+        message = await ctx.send(embed=embed)
+
+        # Add reactions
+        await message.add_reaction('✅')
+        await message.add_reaction('❌')
+
+        # Wait for reaction
+        def check(reaction, user):
+            return user == ctx.author and reaction.message.id == message.id and str(reaction.emoji) in ['✅', '❌']
+
+        try:
+            reaction, _ = await bot.wait_for('reaction_add', timeout=120, check=check)
+        except asyncio.TimeoutError:
+            embed = discord.Embed(
+                description=':x: Verification process timed out.',
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        if str(reaction.emoji) == '✅':
+            # Restart verification
+            await message.delete()
+        else:
+            # Abort verification
+            embed = discord.Embed(
+                description=':x: Verification process aborted.',
+                color=discord.Color.red()
+            )
+            await message.edit(embed=embed)
+            return
+
     # Send a message in the server channel to start the verification process
     embed = discord.Embed(
         description=':rocket: Verification process started. Please check your DMs.',
