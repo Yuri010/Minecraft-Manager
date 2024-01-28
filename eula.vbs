@@ -1,7 +1,7 @@
 Set objShell = CreateObject("WScript.Shell")
-strFilePath = WScript.Arguments.Item(0)
+strFilePath = "eula.txt"
 
-objShell.Run "notepad.exe " & strFilePath, 1
+objShell.Run "notepad.exe " & strFilePath, 1, True
 WScript.Sleep 1000
 objShell.SendKeys "^{END}"
 objShell.SendKeys "{BS}"

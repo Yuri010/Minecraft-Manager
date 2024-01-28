@@ -1,4 +1,4 @@
-:: version 1.1.0
+:: version 1.2.0
 @echo off
 title Minecraft-Manager Updater
 cd %~dp0
@@ -166,8 +166,8 @@ echo. (S)pigot Server (Supports Plugins)
 echo. (A)dd later (manually)
 choice /C VSA /M "Choice: "
 if %errorlevel% == 3 goto :continue
-if %errorlevel% == 2 set dwdlk=https://download.getbukkit.org/spigot/spigot-1.19.4.jar & set server=Spigot
-if %errorlevel% == 1 set dwdlk=https://piston-data.mojang.com/v1/objects/8f3112a1049751cc472ec13e397eade5336ca7ae/server.jar & set server=Vanilla
+if %errorlevel% == 2 set dwdlk=https://download.getbukkit.org/spigot/spigot-1.20.4.jar & set server=Spigot
+if %errorlevel% == 1 set dwdlk=https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b7b4fc76e594d/server.jar & set server=Vanilla
 echo.
 echo.
 echo Downloading the %server% Server JAR (1.19.4)
