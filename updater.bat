@@ -1,4 +1,4 @@
-:: version 1.2.0
+:: version 1.2.1
 @echo off
 title Minecraft-Manager Updater
 cd %~dp0
