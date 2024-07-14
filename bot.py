@@ -1,4 +1,4 @@
-# version 1.2.1
+# version 1.2.2
 import discord
 from discord.ext import commands
 import subprocess
@@ -13,6 +13,10 @@ import random
 import json
 import os
 import shutil
+import datetime
+import aiohttp
+
+BOT_VERSION = "1.2.2"
 
 conn = sqlite3.connect('minecraft_manager.db')
 c = conn.cursor()
@@ -170,6 +174,12 @@ async def shutdown_error(ctx, error):
 async def info_command(ctx):
     prefix = bot.command_prefix
     bot_user = bot.user
+    timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://api.github.com/repos/yuri010/minecraft-manager/releases/latest") as response:
+            data = await response.json()
+            latest_version = data.get("tag_name", "Unknown")
 
     minecrafter_commands = [
         '`start`: Starts the Minecraft Server and displays the IP',
@@ -195,7 +205,9 @@ async def info_command(ctx):
     embed.add_field(name='Minecrafter Commands', value='\n'.join(minecrafter_commands), inline=False)
     embed.add_field(name='Operator Commands', value='\n'.join(operator_commands), inline=False)
     embed.add_field(name='Miscellaneous Bot Commands', value='\n'.join(bot_commands), inline=False)
-
+    update_indicator = "🔔 New version available!" if latest_version > BOT_VERSION else ""
+    footer_text = f"Version {BOT_VERSION} | Sent at {timestamp} | {update_indicator}"
+    embed.set_footer(text=footer_text, icon_url=bot_user.avatar.url)
     await ctx.send(embed=embed)
 
 
