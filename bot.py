@@ -1,4 +1,4 @@
-# version 1.2.0
+# version 1.2.1
 import discord
 from discord.ext import commands
 import subprocess
@@ -47,12 +47,15 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='$', intents=intents)
 
+
 def has_required_role(ctx):
     role = discord.utils.get(ctx.guild.roles, name=required_role)
     return role in ctx.author.roles
 
+
 def is_bot_owner(ctx):
     return ctx.author.id == bot_owner_id
+
 
 @bot.command(name='start')
 @commands.check(has_required_role)
@@ -64,7 +67,8 @@ async def start(ctx):
         await ctx.send(embed=embed)
         return
 
-    embed = discord.Embed(description=':rocket: Starting the Minecraft server, please wait...', color=discord.Color.blue())
+    embed = discord.Embed(description=':rocket: Starting the Minecraft server, please wait...',
+                          color=discord.Color.blue())
     message = await ctx.send(embed=embed)
 
     try:
@@ -77,18 +81,21 @@ async def start(ctx):
         if public_ip:
             public_ip = public_ip.replace('tcp://', '')
             embed = discord.Embed(
-                title = ':white_check_mark: The Minecraft server has started successfully.',
-                description = f"The server is now accessible at: **{public_ip}**",
+                title=':white_check_mark: The Minecraft server has started successfully.',
+                description=f"The server is now accessible at: **{public_ip}**",
                 color=discord.Color.green()
             )
             await message.edit(embed=embed)
         else:
-            embed = discord.Embed(description=':x: Failed to retrieve the public IP of the server.', color=discord.Color.red())
+            embed = discord.Embed(description=':x: Failed to retrieve the public IP of the server.',
+                                  color=discord.Color.red())
             await message.edit(embed=embed)
 
     except Exception as e:
-        embed = discord.Embed(description=f':x: An error occurred while starting the server: {str(e)}', color=discord.Color.red())
+        embed = discord.Embed(description=f':x: An error occurred while starting the server: {str(e)}',
+                              color=discord.Color.red())
         await message.edit(embed=embed)
+
 
 @start.error
 async def start_error(ctx, error):
@@ -99,6 +106,7 @@ async def start_error(ctx, error):
             color=discord.Color.red()
         )
         await ctx.send(embed=embed)
+
 
 @bot.command(name='stop')
 async def stop_command(ctx):
@@ -121,7 +129,7 @@ async def stop_command(ctx):
         )
         await ctx.send(embed=embed)
         return
-    
+
     if not server_running:
         embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
         await ctx.send(embed=embed)
@@ -129,12 +137,15 @@ async def stop_command(ctx):
 
     try:
         with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
-            response = rcon.command('stop')
-            embed = discord.Embed(description=':stop_button: Sent the `stop` command to the Minecraft server.', color=discord.Color.green())
+            rcon.command('stop')
+            embed = discord.Embed(description=':stop_button: Sent the `stop` command to the Minecraft server.',
+                                  color=discord.Color.green())
             await ctx.send(embed=embed)
-    except mcrcon.MCRconException as e:
-        embed = discord.Embed(description=':x: Failed to send the `stop` command to the Minecraft server.', color=discord.Color.red())
+    except mcrcon.MCRconException:
+        embed = discord.Embed(description=':x: Failed to send the `stop` command to the Minecraft server.',
+                              color=discord.Color.red())
         await ctx.send(embed=embed)
+
 
 @bot.command(name='shutdown')
 @commands.check(is_bot_owner)
@@ -143,15 +154,17 @@ async def shutdown_bot(ctx):
     await ctx.send(embed=embed)
     await bot.close()
 
+
 @shutdown_bot.error
 async def shutdown_error(ctx, error):
     if isinstance(error, commands.CheckFailure):
         embed = discord.Embed(
             title="❌ Missing Permissions",
-            description=f"Only the Minecraft Server Owner can issue this command.",
+            description="Only the Minecraft Server Owner can issue this command.",
             color=discord.Color.red()
         )
         await ctx.send(embed=embed)
+
 
 @bot.command(name='info')
 async def info_command(ctx):
@@ -165,7 +178,7 @@ async def info_command(ctx):
     ]
 
     operator_commands = [
-        '`snapshots <list / create>`: List or create world snapshots',
+        '`snapshots <list / create / delete>`: Manage world snapshots',
         '`console <command>`: Send commands to the Minecraft Server',
         '`stop`: Stops the Minecraft Server'
     ]
@@ -175,13 +188,16 @@ async def info_command(ctx):
         '`info`: Display this info message'
     ]
 
-    embed = discord.Embed(description=f"Hi! I am a simple Discord bot made by <@603158153638707242>.\nI am designed to manage Minecraft servers from within Discord.\n\nMy current prefix is: `{prefix}`", color=discord.Color.blue())
-    embed.set_author(name=f'Minecraft Manager', icon_url=bot_user.avatar.url)
+    embed = discord.Embed(description=f"Hi! I am a simple Discord bot made by <@603158153638707242>.\nI am designed to\
+                          manage Minecraft servers from within Discord.\n\nMy current prefix is: `{prefix}`",
+                          color=discord.Color.blue())
+    embed.set_author(name='Minecraft Manager', icon_url=bot_user.avatar.url)
     embed.add_field(name='Minecrafter Commands', value='\n'.join(minecrafter_commands), inline=False)
     embed.add_field(name='Operator Commands', value='\n'.join(operator_commands), inline=False)
     embed.add_field(name='Miscellaneous Bot Commands', value='\n'.join(bot_commands), inline=False)
 
     await ctx.send(embed=embed)
+
 
 @bot.command(name='console')
 async def console_command(ctx, *, command):
@@ -204,17 +220,19 @@ async def console_command(ctx, *, command):
         )
         await ctx.send(embed=embed)
         return
-    
+
     try:
         with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
             response = rcon.command(command)
-            embed = discord.Embed(title='Minecraft Console', description=f'Command: {command}', color=discord.Color.green())
+            embed = discord.Embed(title='Minecraft Console', description=f'Command: {command}',
+                                  color=discord.Color.green())
             embed.add_field(name='Output', value=response)
             await ctx.send(embed=embed)
     except mcrcon.MCRconException as e:
         embed = discord.Embed(title='Minecraft Console', description=f'Command: {command}', color=discord.Color.red())
         embed.add_field(name='Error', value=str(e))
         await ctx.send(embed=embed)
+
 
 @console_command.error
 async def console_error(ctx, error):
@@ -226,6 +244,7 @@ async def console_error(ctx, error):
         )
         await ctx.send(embed=embed)
 
+
 @bot.command(name='ping')
 async def ping_command(ctx):
     start_time = time.time()
@@ -236,6 +255,7 @@ async def ping_command(ctx):
 
     embed = discord.Embed(description=f'Pong! Latency: {latency:.2f} ms', color=discord.Color.green())
     await message.edit(content='', embed=embed)
+
 
 @bot.command(name='status')
 async def status_command(ctx):
@@ -253,8 +273,8 @@ async def status_command(ctx):
 
             if result != 0:
                 embed_color = discord.Color.red()
-        except Exception as e:
-            print(f'Failed to check server status: {str(e)}')
+        except TypeError:
+            print('Failed to check server status: string conversion error.')
 
     embed = discord.Embed(title='Server Status', color=embed_color)
     embed.add_field(name='Status', value='Running' if server_running else 'Stopped', inline=False)
@@ -278,6 +298,7 @@ async def status_command(ctx):
 
     await ctx.send(embed=embed)
 
+
 async def get_public_ip():
     try:
         response = requests.get('http://localhost:4040/api/tunnels')
@@ -294,7 +315,8 @@ async def get_public_ip():
     except Exception as e:
         print(f"Failed to retrieve public IP: {str(e)}")
         return None
-    
+
+
 @bot.command(name='verify')
 async def verify_command(ctx):
     if not server_running:
@@ -369,7 +391,7 @@ async def verify_command(ctx):
     try:
         with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
             response = rcon.command('list')
-    except mcrcon.MCRconException as e:
+    except mcrcon.MCRconException:
         embed = discord.Embed(
             description=':x: An error occurred while executing the "list" command in the Minecraft server.',
             color=discord.Color.red()
@@ -390,7 +412,7 @@ async def verify_command(ctx):
     try:
         with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
             rcon.command(f'w {minecraft_username} Discord verification code: {verification_code}')
-    except mcrcon.MCRconException as e:
+    except mcrcon.MCRconException:
         embed = discord.Embed(
             description=':x: An error occurred while sending the verification code to the Minecraft server.',
             color=discord.Color.red()
@@ -399,7 +421,8 @@ async def verify_command(ctx):
         return
 
     embed = discord.Embed(
-        description=':white_check_mark: A verification code has been sent to you in Minecraft. Please enter it here to complete the verification process.',
+        description=':white_check_mark: A verification code has been sent to you in Minecraft. Please enter it here to\
+              complete the verification process.',
         color=discord.Color.blue()
     )
     await dm_channel.send(embed=embed)
@@ -433,10 +456,11 @@ async def verify_command(ctx):
     )
     await dm_channel.send(embed=embed)
 
+
 def has_operator(minecraft_username):
     try:
-        with open('ops.json', 'r') as file:
-            if os.stat('ops.json').st_size == 0:
+        with open('../ops.json', 'r') as file:
+            if os.stat('../ops.json').st_size == 0:
                 print("Error at 'has_operator': ops.json is empty.")
                 return False
 
@@ -449,8 +473,9 @@ def has_operator(minecraft_username):
         if op['name'] == minecraft_username:
             return True
 
+
 @bot.command(name='snapshots')
-async def snapshots_command(ctx, action=None):
+async def snapshots_command(ctx, action=None, *args):
     discord_id = ctx.author.id
     c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
     result = c.fetchone()
@@ -470,15 +495,19 @@ async def snapshots_command(ctx, action=None):
         )
         await ctx.send(embed=embed)
         return
-    
+
     if action == 'create':
         await create_snapshot(ctx)
+    elif action == 'delete':
+        await delete_snapshot(ctx, ' '.join(args))
     else:
         await list_snapshots(ctx)
 
+
 async def create_snapshot(ctx):
     if server_running:
-        embed = discord.Embed(description=':x: Cannot create a snapshot while the server is running.', color=discord.Color.red())
+        embed = discord.Embed(description=':x: Cannot create a snapshot while the server is running.',
+                              color=discord.Color.red())
         await ctx.send(embed=embed)
         return
 
@@ -520,6 +549,12 @@ async def create_snapshot(ctx):
         except asyncio.TimeoutError:
             snapshot_description = ""
 
+        waitembed = discord.Embed(
+            description=':rocket: Creating snapshot...',
+            color=discord.Color.blue()
+        )
+        message = await ctx.send(embed=waitembed)
+
         snapshot_filename = f"snapshot_{int(time.time())}"
         snapshot_path = os.path.join(snapshots_folder, snapshot_filename)
 
@@ -528,12 +563,14 @@ async def create_snapshot(ctx):
         file_size = os.path.getsize(f"{snapshot_path}.zip")
 
         current_date = time.strftime('%Y-%m-%d %H:%M:%S')
-        c.execute("INSERT INTO snapshots (filename, fancy_name, path, file_size, date, notes) VALUES (?, ?, ?, ?, ?, ?)",
-                  (f"{snapshot_filename}.zip", snapshot_name, f"{snapshot_path}.zip", file_size, current_date, snapshot_description))
+        c.execute("INSERT INTO snapshots(filename, fancy_name, path, file_size, date, notes) VALUES (?, ?, ?, ?, ?, ?)",
+                  (f"{snapshot_filename}.zip", snapshot_name, f"{snapshot_path}.zip", file_size, current_date,
+                   snapshot_description))
         conn.commit()
 
-        embed = discord.Embed(description=':white_check_mark: Snapshot created successfully.', color=discord.Color.green())
-        await ctx.send(embed=embed)
+        waitembed = discord.Embed(description=':white_check_mark: Snapshot created successfully.',
+                                  color=discord.Color.green())
+        await message.edit(embed=waitembed)
 
     except Exception as e:
         embed = discord.Embed(description=f':x: Failed to create snapshot: {str(e)}', color=discord.Color.red())
@@ -541,6 +578,7 @@ async def create_snapshot(ctx):
 
     finally:
         shutil.rmtree(temp_folder, ignore_errors=True)
+
 
 async def list_snapshots(ctx):
     c.execute("SELECT * FROM snapshots")
@@ -577,9 +615,66 @@ async def list_snapshots(ctx):
         normal_embed.description = 'No snapshots available.'
         await ctx.send(embed=normal_embed)
 
+
+async def delete_snapshot(ctx, snapshot_name):
+    c.execute("SELECT * FROM snapshots WHERE fancy_name=?", (snapshot_name,))
+    snapshot = c.fetchone()
+
+    if not snapshot:
+        embed = discord.Embed(
+            description=f':x: Snapshot with the name "{snapshot_name}" not found.',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+
+    snapshot_id, filename, fancy_name, path, file_size, date, notes = snapshot
+
+    delete_embed = discord.Embed(
+        description=f'Are you sure you want to delete the snapshot "{fancy_name}"?',
+        color=discord.Color.blue()
+    )
+
+    delete_message = await ctx.send(embed=delete_embed)
+
+    def check_delete(reaction, user):
+        return user == ctx.author and reaction.message.id == delete_message.id and str(reaction.emoji) in ['✅', '❌']
+
+    await delete_message.add_reaction('✅')
+    await delete_message.add_reaction('❌')
+
+    try:
+        reaction, _ = await bot.wait_for('reaction_add', timeout=120, check=check_delete)
+    except asyncio.TimeoutError:
+        embed = discord.Embed(
+            description=f':x: Snapshot deletion process timed out for "{fancy_name}".',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+
+    if str(reaction.emoji) == '✅':
+        os.remove(path)
+        c.execute("DELETE FROM snapshots WHERE id=?", (snapshot_id,))
+        conn.commit()
+
+        embed = discord.Embed(
+            description=f':wastebasket: Snapshot "{fancy_name}" has been deleted.',
+            color=discord.Color.green()
+        )
+        await ctx.send(embed=embed)
+    else:
+        embed = discord.Embed(
+            description=f':x: Snapshot deletion process aborted for "{fancy_name}".',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+
+
 @bot.event
 async def on_ready():
     print(f'Bot is ready. Logged in as {bot.user.name}')
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="over a Minecraft Server"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,
+                                                        name="over a Minecraft Server"))
 
 bot.run(TOKEN)
