@@ -171,7 +171,14 @@ async def shutdown_error(ctx, error):
 
 
 @bot.command(name='info')
-async def info_command(ctx):
+async def info_command(ctx, action=None):
+    if action == 'snapshots':
+        await info_snapshots(ctx)
+    else:
+        await info(ctx)
+
+
+async def info(ctx):
     prefix = bot.command_prefix
     bot_user = bot.user
     timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
@@ -186,13 +193,11 @@ async def info_command(ctx):
         '`status`: Shows the status of the Minecraft server',
         '`verify`: Link your Minecraft and Discord account (Required for some commands)'
     ]
-
     operator_commands = [
-        '`snapshots <list / create / delete / restore>`: Manage world snapshots',
+        '`snapshots <command>`: Manage world snapshots (see `info snapshots`)',
         '`console <command>`: Send commands to the Minecraft Server',
         '`stop`: Stops the Minecraft Server'
     ]
-
     bot_commands = [
         '`ping`: Pong!',
         '`info`: Display this info message'
@@ -200,13 +205,33 @@ async def info_command(ctx):
 
     embed = discord.Embed(description=f"Hi! I am a simple Discord bot made by <@603158153638707242>.\nI am designed to\
                           manage Minecraft servers from within Discord.\n\nMy current prefix is: `{prefix}`",
-                          color=discord.Color.blue())
+                          color=discord.Color.green())
     embed.set_author(name='Minecraft Manager', icon_url=bot_user.avatar.url)
     embed.add_field(name='Minecrafter Commands', value='\n'.join(minecrafter_commands), inline=False)
     embed.add_field(name='Operator Commands', value='\n'.join(operator_commands), inline=False)
     embed.add_field(name='Miscellaneous Bot Commands', value='\n'.join(bot_commands), inline=False)
     update_indicator = "🔔 New version available!" if latest_version > BOT_VERSION else ""
     footer_text = f"Version {BOT_VERSION} | Sent at {timestamp} | {update_indicator}"
+    embed.set_footer(text=footer_text, icon_url=bot_user.avatar.url)
+    await ctx.send(embed=embed)
+
+
+async def info_snapshots(ctx):
+    bot_user = bot.user
+    timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
+    snapshot_commands = [
+            '`list`: List all available snapshots',
+            '`create <name>`: Create a new snapshot of the world',
+            '`delete <name>`: Delete a snapshot',
+            '`restore <name>`: Restore the server from a snapshot',
+            '`download <name>`: Download a snapshot ("World download")'
+    ]
+    embed = discord.Embed(description="Here are the available snapshot management commands:",
+                          color=discord.Color.green())
+    embed.set_author(name='Minecraft Manager', icon_url=bot_user.avatar.url)
+    embed.add_field(name='Snapshots Commands', value='\n'.join(snapshot_commands), inline=False)
+    footer_text = f"Version {BOT_VERSION} | Sent at {timestamp}"
     embed.set_footer(text=footer_text, icon_url=bot_user.avatar.url)
     await ctx.send(embed=embed)
 
@@ -516,6 +541,8 @@ async def snapshots_command(ctx, action=None, *args):
         await delete_snapshot(ctx, ' '.join(args))
     elif action == 'restore':
         await restore_snapshot(ctx, ' '.join(args))
+    elif action == 'download':
+        await download_snapshot(ctx, ' '.join(args))
     else:
         await list_snapshots(ctx)
 
@@ -612,7 +639,7 @@ async def list_snapshots(ctx):
     c.execute("SELECT * FROM snapshots")
     snapshots = c.fetchall()
 
-    normal_embed = discord.Embed(color=discord.Color.blue())
+    normal_embed = discord.Embed(color=discord.Color.green())
     excluded_entries = []
 
     for snapshot in snapshots:
@@ -659,7 +686,7 @@ async def delete_snapshot(ctx, snapshot_name):
 
     delete_embed = discord.Embed(
         description=f':warning: Are you sure you want to delete the snapshot "{fancy_name}"?',
-        color=discord.Color.blue()
+        color=discord.Color.yellow()
     )
 
     delete_message = await ctx.send(embed=delete_embed)
@@ -724,7 +751,7 @@ async def restore_snapshot(ctx, snapshot_name):
     confirm_embed = discord.Embed(
         description=f'🛠️ Are you sure you want to restore the snapshot "{fancy_name}"?\n'
                     f'This will create a new snapshot before restoring and overwrite the current world data.',
-        color=discord.Color.blue()
+        color=discord.Color.yellow()
     )
 
     confirm_message = await ctx.send(embed=confirm_embed)
@@ -786,6 +813,54 @@ async def restore_snapshot(ctx, snapshot_name):
         )
         await confirm_message.edit(embed=embed)
         await confirm_message.clear_reactions()
+
+
+async def download_snapshot(ctx, snapshot_name):
+    c.execute("SELECT path FROM snapshots WHERE fancy_name=?", (snapshot_name,))
+    snapshot = c.fetchone()
+
+    if not snapshot:
+        embed = discord.Embed(
+            description=f':x: Snapshot with the name "{snapshot_name}" not found.',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+
+    snapshot_path = snapshot[0]
+
+    if not os.path.exists(snapshot_path):
+        embed = discord.Embed(
+            description=f':x: Snapshot file for "{snapshot_name}" not found.',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+
+    initial_message = await ctx.send(
+        embed=discord.Embed(
+            description=f':hourglass: Starting upload for snapshot "{snapshot_name}"...',
+            color=discord.Color.blue()
+        )
+    )
+
+    try:
+        file = discord.File(snapshot_path, filename=os.path.basename(snapshot_path))
+        await ctx.send(file=file)
+
+        success_embed = discord.Embed(
+            description=f':white_check_mark: Snapshot "{snapshot_name}" has been successfully uploaded.',
+            color=discord.Color.green()
+        )
+        await initial_message.delete()
+        await ctx.send(embed=success_embed)
+    except Exception as e:
+        error_embed = discord.Embed(
+            description=f':x: Failed to upload snapshot "{snapshot_name}": {str(e)}',
+            color=discord.Color.red()
+        )
+        await initial_message.edit(embed=error_embed)
+        await initial_message.clear_reactions()
 
 
 @bot.event
