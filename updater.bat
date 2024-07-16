@@ -1,4 +1,4 @@
-:: version 1.2.1
+:: version 1.2.2
 @echo off
 title Minecraft-Manager Updater
 cd %~dp0
@@ -13,6 +13,9 @@ echo %* | find /I "-configure"
 if %errorlevel% == 0 goto :configure
 echo %* | find /I "-modules"
 if %errorlevel% == 0 goto :modules
+echo %* | find /I "-autostart"
+if %errorlevel% == 0 set "autostart=on" && goto :update
+if %errorlevel% == 0 goto :update
 echo %* | find /I "update"
 if %errorlevel% == 0 goto :update
 echo %* | find /I "-install"
@@ -74,7 +77,7 @@ curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/star
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.bat -o bot-new.bat
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.py -o bot-new.py
 curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/updater.bat -o updater-new.bat
-if %newinstall == true (
+if "%newinstall%" == "true" (
     cd ..
     curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/eula.vbs -o eula.vbs
     cd scripts
@@ -107,7 +110,14 @@ move updater-new.bat updater.bat"
 start "" "cmd /c "%~dp0scripts/updater.bat" -configure
 cd ..
 start "" "cmd /c del /f updater.bat"
-) else start "" "cmd /c move updater-new.bat updater.bat"
+) else goto :updateend
+
+:updateend
+if "%autostart%" == "on" (
+    start "" "cmd /c timeout /t 3 & start bot.bat"
+    start "" "cmd /c move updater-new.bat updater.bat"
+)
+start "" "cmd /c move updater-new.bat updater.bat"
 exit
 
 :: ===================================INSTALL===================================
