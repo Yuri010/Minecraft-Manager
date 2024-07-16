@@ -96,7 +96,7 @@ move bot-new.py bot.py
 if NOT exist config.cfg move config-new.cfg config.cfg
 timeout 1 > nul
 if "%newinstall%" == "true" (
-cls
+if "%jar%" == "true" (
 echo It looks like this is a new installation
 echo The script will automatically attempt to edit the EULA file to agree to the Minecraft Server EULA
 echo PLEASE DO NOT TOUCH YOUR COMPUTER DURING THIS Part
@@ -104,8 +104,11 @@ echo.
 pause
 echo DO NOT TOUCH YOUR PC
 timeout /t 1 /nobreak > nul
+cd ..
 eula.vbs
+cd scripts
 timeout /t 1 /nobreak > nul
+)
 move updater-new.bat updater.bat"
 start "" "cmd /c "%~dp0scripts/updater.bat" -configure
 cd ..
@@ -180,10 +183,11 @@ if %errorlevel% == 2 set dwdlk=https://download.getbukkit.org/spigot/spigot-1.20
 if %errorlevel% == 1 set dwdlk=https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b7b4fc76e594d/server.jar & set server=Vanilla
 echo.
 echo.
-echo Downloading the %server% Server JAR (1.19.4)
+echo Downloading the %server% Server JAR (1.20.4)
 curl --progress-bar %dwdlk% -o server.jar
 java -jar server.jar nogui
 timeout /t 2 /nobreak > nul
+set jar=true
 cls
 :continue
 echo Downloading Ngrok
