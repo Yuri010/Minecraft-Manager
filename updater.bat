@@ -28,13 +28,14 @@ curl --output releases.tmp -L https://api.github.com/repos/yuri010/minecraft-man
 if /I "%debug%" == "on" echo. & pause
 for /F "tokens=2 delims= " %%a IN ('findstr /I "tag_name" releases.tmp') DO set gver=%%a
 for /F "tokens=1 delims=," %%b IN ("%gver%") DO set gver=%%b
-for /F "tokens=3 delims= " %%c IN ('findstr /I "version" bot.py') DO set lver=%%c
+for /F "tokens=3 delims= " %%c IN ('find "# version " bot.py') DO set lver=%%c
 goto :main
 
 :: ===================================MAIN===================================
 
 :main
 del releases.tmp
+@echo on
 if NOT exist "start.bat" (
     cls
     echo Minecraft-Manager is not installed! It will be installed automatically.
@@ -49,7 +50,7 @@ if "%lver%" LSS %gver% (
     if /I "%errorlevel%" EQU "1" goto :update
 )
 if /I "%lver%" GTR %gver% (
-    cls
+    ::cls
     echo Hey! Github isn't Up-to-Date!
     echo.
     echo Press any key to exit...
