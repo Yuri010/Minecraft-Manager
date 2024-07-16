@@ -170,6 +170,79 @@ async def shutdown_error(ctx, error):
         await ctx.send(embed=embed)
 
 
+@bot.command(name='update')
+@commands.check(is_bot_owner)
+async def update_bot(ctx):
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://api.github.com/repos/yuri010/minecraft-manager/releases/latest") as response:
+            data = await response.json()
+            latest_version = data.get("tag_name", "Unknown")
+
+    if latest_version > BOT_VERSION:
+        embed = discord.Embed(
+            description=f'🔄 A new version ({latest_version} over {BOT_VERSION}) is available!\
+                  Do you want to update now?',
+            color=discord.Color.blue()
+        )
+        message = await ctx.send(embed=embed)
+        await message.add_reaction('✅')
+        await message.add_reaction('❌')
+
+        def check(reaction, user):
+            return user == ctx.author and str(reaction.emoji) in ['✅', '❌'] and reaction.message.id == message.id
+
+        try:
+            reaction, _ = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+
+            if str(reaction.emoji) == '✅':
+                confirm_embed = discord.Embed(
+                    description='🔄 The bot will restart to perform an update. Please wait...',
+                    color=discord.Color.blue()
+                )
+                await message.edit(embed=confirm_embed)
+                await message.clear_reactions()
+                try:
+                    subprocess.Popen('start cmd /c "updater.bat -autostart"', shell=True)
+                    await bot.close()
+                except Exception as e:
+                    error_embed = discord.Embed(
+                        description=f':x: An error occurred while starting the update: {str(e)}',
+                        color=discord.Color.red()
+                    )
+                    await message.edit(embed=error_embed)
+            else:
+                cancel_embed = discord.Embed(
+                    description=':x: Update canceled.',
+                    color=discord.Color.green()
+                )
+                await message.edit(embed=cancel_embed)
+
+        except asyncio.TimeoutError:
+            timeout_embed = discord.Embed(
+                description=':x: Update process timed out.',
+                color=discord.Color.red()
+            )
+            await message.edit(embed=timeout_embed)
+
+    else:
+        up_to_date_embed = discord.Embed(
+            description=f'✅ The bot is already up to date (Version {BOT_VERSION}).',
+            color=discord.Color.green()
+        )
+        await ctx.send(embed=up_to_date_embed)
+
+
+@update_bot.error
+async def update_error(ctx, error):
+    if isinstance(error, commands.CheckFailure):
+        embed = discord.Embed(
+            title="❌ Missing Permissions",
+            description="Only the Minecraft Server Owner can issue this command.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+
+
 @bot.command(name='info')
 async def info_command(ctx, action=None):
     if action == 'snapshots':
@@ -210,8 +283,8 @@ async def info(ctx):
     embed.add_field(name='Minecrafter Commands', value='\n'.join(minecrafter_commands), inline=False)
     embed.add_field(name='Operator Commands', value='\n'.join(operator_commands), inline=False)
     embed.add_field(name='Miscellaneous Bot Commands', value='\n'.join(bot_commands), inline=False)
-    update_indicator = "🔔 New version available!" if latest_version > BOT_VERSION else ""
-    footer_text = f"Version {BOT_VERSION} | Sent at {timestamp} | {update_indicator}"
+    update_indicator = "| 🔔 New version available!" if latest_version > BOT_VERSION else ""
+    footer_text = f"Version {BOT_VERSION} | Sent at {timestamp} {update_indicator}"
     embed.set_footer(text=footer_text, icon_url=bot_user.avatar.url)
     await ctx.send(embed=embed)
 
@@ -527,13 +600,33 @@ async def snapshots_command(ctx, action=None, *args):
         return
 
     minecraft_username = result[1]
-    if not has_operator(minecraft_username) and not is_bot_owner(ctx):
-        embed = discord.Embed(
-            description=':x: You do not have permission to use this command.',
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return
+
+    if action == 'list' or action == 'download':
+        if not has_required_role(ctx):
+            embed = discord.Embed(
+                description=':x: You do not have permission to use this command.',
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+    if action == 'create':
+        if not has_operator(minecraft_username):
+            embed = discord.Embed(
+                description=':x: You do not have permission to use this command.',
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+    if action == 'delete' or action == 'restore':
+        if not is_bot_owner(ctx):
+            embed = discord.Embed(
+                description=':x: You do not have permission to use this command.',
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
 
     if action == 'create':
         await create_snapshot(ctx, suppress_success_message=False)
