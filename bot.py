@@ -16,7 +16,7 @@ import shutil
 import datetime
 import aiohttp
 
-BOT_VERSION = "INT 1.2.2"
+BOT_VERSION = "1.2.2"
 
 conn = sqlite3.connect('minecraft_manager.db')
 c = conn.cursor()
