@@ -35,7 +35,6 @@ goto :main
 
 :main
 del releases.tmp
-@echo on
 if NOT exist "start.bat" (
     cls
     echo Minecraft-Manager is not installed! It will be installed automatically.
@@ -50,7 +49,7 @@ if "%lver%" LSS %gver% (
     if /I "%errorlevel%" EQU "1" goto :update
 )
 if /I "%lver%" GTR %gver% (
-    ::cls
+    cls
     echo Hey! Github isn't Up-to-Date!
     echo.
     echo Press any key to exit...
