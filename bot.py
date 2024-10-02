@@ -3,17 +3,14 @@ import discord
 from discord.ext import commands
 import bot_modules
 import subprocess
-import requests
 import time
 import mcrcon
 import configparser
 import socket
 import asyncio
 import sqlite3
-import random
 import json
 import os
-import datetime
 import aiohttp
 
 BOT_VERSION = "1.3.0"
@@ -66,6 +63,10 @@ def has_operator(minecraft_username):
 
 def is_bot_owner(ctx):
     return ctx.author.id == bot_owner_id
+
+
+async def get_public_ip():
+    await bot_modules.get_public_ip()
 
 
 @bot.command(name='start')
@@ -250,72 +251,6 @@ async def update_error(ctx, error):
         await ctx.send(embed=embed)
 
 
-@bot.command(name='info')
-async def info_command(ctx, action=None):
-    if action == 'snapshots':
-        await info_snapshots(ctx)
-    else:
-        await info(ctx)
-
-
-async def info(ctx):
-    prefix = bot.command_prefix
-    bot_user = bot.user
-    timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get("https://api.github.com/repos/yuri010/minecraft-manager/releases/latest") as response:
-            data = await response.json()
-            latest_version = data.get("tag_name", "Unknown")
-
-    minecrafter_commands = [
-        '`start`: Starts the Minecraft Server and displays the IP',
-        '`status`: Shows the status of the Minecraft server',
-        '`verify`: Link your Minecraft and Discord account (Required for some commands)'
-    ]
-    operator_commands = [
-        '`snapshots <command>`: Manage world snapshots (see `info snapshots`)',
-        '`console <command>`: Send commands to the Minecraft Server',
-        '`stop`: Stops the Minecraft Server'
-    ]
-    bot_commands = [
-        '`ping`: Pong!',
-        '`info`: Display this info message'
-    ]
-
-    embed = discord.Embed(description=f"Hi! I am a simple Discord bot made by <@603158153638707242>.\nI am designed to\
-                          manage Minecraft servers from within Discord.\n\nMy current prefix is: `{prefix}`",
-                          color=discord.Color.green())
-    embed.set_author(name='Minecraft Manager', icon_url=bot_user.avatar.url)
-    embed.add_field(name='Minecrafter Commands', value='\n'.join(minecrafter_commands), inline=False)
-    embed.add_field(name='Operator Commands', value='\n'.join(operator_commands), inline=False)
-    embed.add_field(name='Miscellaneous Bot Commands', value='\n'.join(bot_commands), inline=False)
-    update_indicator = "| 🔔 New version available!" if latest_version > BOT_VERSION else ""
-    footer_text = f"Version {BOT_VERSION} | Sent at {timestamp} {update_indicator}"
-    embed.set_footer(text=footer_text, icon_url=bot_user.avatar.url)
-    await ctx.send(embed=embed)
-
-
-async def info_snapshots(ctx):
-    bot_user = bot.user
-    timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-
-    snapshot_commands = [
-            '`list`: List all available snapshots',
-            '`create <name>`: Create a new snapshot of the world',
-            '`delete <name>`: Delete a snapshot',
-            '`restore <name>`: Restore the server from a snapshot',
-            '`download <name>`: Download a snapshot ("World download")'
-    ]
-    embed = discord.Embed(description="Here are the available snapshot management commands:",
-                          color=discord.Color.green())
-    embed.set_author(name='Minecraft Manager', icon_url=bot_user.avatar.url)
-    embed.add_field(name='Snapshots Commands', value='\n'.join(snapshot_commands), inline=False)
-    footer_text = f"Version {BOT_VERSION} | Sent at {timestamp}"
-    embed.set_footer(text=footer_text, icon_url=bot_user.avatar.url)
-    await ctx.send(embed=embed)
-
-
 @bot.command(name='console')
 async def console_command(ctx, *, command):
     discord_id = ctx.author.id
@@ -362,18 +297,6 @@ async def console_error(ctx, error):
         await ctx.send(embed=embed)
 
 
-@bot.command(name='ping')
-async def ping_command(ctx):
-    start_time = time.time()
-    message = await ctx.send('Pinging...')
-    end_time = time.time()
-
-    latency = (end_time - start_time) * 1000
-
-    embed = discord.Embed(description=f'Pong! Latency: {latency:.2f} ms', color=discord.Color.green())
-    await message.edit(content='', embed=embed)
-
-
 @bot.command(name='status')
 async def status_command(ctx):
     embed_color = discord.Color.red()
@@ -414,166 +337,6 @@ async def status_command(ctx):
             embed.add_field(name='Ping', value=f'Failed to ping server: {str(e)}', inline=False)
 
     await ctx.send(embed=embed)
-
-
-async def get_public_ip():
-    try:
-        response = requests.get('http://localhost:4040/api/tunnels')
-        response.raise_for_status()
-
-        data = response.json()
-        tunnels = data.get('tunnels', [])
-        if tunnels:
-            tunnel = tunnels[0]
-            public_url = tunnel.get('public_url')
-            return public_url
-        else:
-            return None
-    except Exception as e:
-        print(f"Failed to retrieve public IP: {str(e)}")
-        return None
-
-
-@bot.command(name='verify')
-async def verify_command(ctx):
-    if not server_running:
-        embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
-        await ctx.send(embed=embed)
-        return
-
-    discord_id = ctx.author.id
-    c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
-    result = c.fetchone()
-
-    if result:
-        embed = discord.Embed(
-            description=':warning: You are already verified. React with ✅ to restart verification or ❌ to abort.',
-            color=discord.Color.orange()
-        )
-        message = await ctx.send(embed=embed)
-
-        await message.add_reaction('✅')
-        await message.add_reaction('❌')
-
-        def check(reaction, user):
-            return user == ctx.author and reaction.message.id == message.id and str(reaction.emoji) in ['✅', '❌']
-
-        try:
-            reaction, _ = await bot.wait_for('reaction_add', timeout=120, check=check)
-        except asyncio.TimeoutError:
-            embed = discord.Embed(
-                description=':x: Verification process timed out.',
-                color=discord.Color.red()
-            )
-            await message.edit(embed=embed)
-            await message.clear_reactions()
-            return
-
-        if str(reaction.emoji) == '✅':
-            await message.delete()
-        else:
-            embed = discord.Embed(
-                description=':x: Verification process aborted.',
-                color=discord.Color.red()
-            )
-            await message.edit(embed=embed)
-            await message.clear_reactions()
-            return
-
-    embed = discord.Embed(
-        description=':rocket: Verification process started. Please check your DMs.',
-        color=discord.Color.blue()
-    )
-    await ctx.send(embed=embed)
-
-    dm_channel = await ctx.author.create_dm()
-    embed = discord.Embed(
-        description='Please join the Minecraft server and send your Minecraft username here.',
-        color=discord.Color.blue()
-    )
-    await dm_channel.send(embed=embed)
-
-    def check_author(m):
-        return m.author == ctx.author and isinstance(m.channel, discord.DMChannel)
-
-    try:
-        message = await bot.wait_for('message', check=check_author, timeout=120)
-        minecraft_username = message.content
-    except asyncio.TimeoutError:
-        embed = discord.Embed(
-            description=':x: Verification process timed out.',
-            color=discord.Color.red()
-        )
-        await dm_channel.send(embed=embed)
-        return
-
-    try:
-        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
-            response = rcon.command('list')
-    except mcrcon.MCRconException:
-        embed = discord.Embed(
-            description=':x: An error occurred while executing the "list" command in the Minecraft server.',
-            color=discord.Color.red()
-        )
-        await dm_channel.send(embed=embed)
-        return
-
-    if minecraft_username not in response:
-        embed = discord.Embed(
-            description=':x: Your Minecraft username was not found online on the server. Please try again.',
-            color=discord.Color.red()
-        )
-        await dm_channel.send(embed=embed)
-        return
-
-    verification_code = ''.join(random.choices('0123456789', k=6))
-
-    try:
-        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
-            rcon.command(f'w {minecraft_username} Discord verification code: {verification_code}')
-    except mcrcon.MCRconException:
-        embed = discord.Embed(
-            description=':x: An error occurred while sending the verification code to the Minecraft server.',
-            color=discord.Color.red()
-        )
-        await dm_channel.send(embed=embed)
-        return
-
-    embed = discord.Embed(
-        description=':white_check_mark: A verification code has been sent to you in Minecraft.\
-            Please enter it here to complete the verification process.',
-        color=discord.Color.blue()
-    )
-    await dm_channel.send(embed=embed)
-
-    try:
-        message = await bot.wait_for('message', check=check_author, timeout=120)
-        user_code = message.content
-    except asyncio.TimeoutError:
-        embed = discord.Embed(
-            description=':x: Verification process timed out.',
-            color=discord.Color.red()
-        )
-        await dm_channel.send(embed=embed)
-        return
-
-    if user_code != verification_code:
-        embed = discord.Embed(
-            description=':x: Incorrect verification code. Please try again.',
-            color=discord.Color.red()
-        )
-        await dm_channel.send(embed=embed)
-        return
-
-    discord_id = ctx.author.id
-    c.execute("INSERT OR REPLACE INTO verification VALUES (?, ?)", (discord_id, minecraft_username))
-    conn.commit()
-
-    embed = discord.Embed(
-        description=':white_check_mark: Verification successful! Your Minecraft account has been linked.',
-        color=discord.Color.green()
-    )
-    await dm_channel.send(embed=embed)
 
 
 @bot.command(name='snapshots')
@@ -628,6 +391,24 @@ async def snapshots_command(ctx, action=None, *args):
         await bot_modules.download_snapshot(ctx, bot, ' '.join(args))
     else:
         await bot_modules.list_snapshots(ctx)
+
+
+@bot.command(name='info')
+async def info_command(ctx, action=None):
+    if action == 'snapshots':
+        await bot_modules.info_snapshots(ctx, bot)
+    else:
+        await bot_modules.info(ctx, bot)
+
+
+@bot.command(name='verify')
+async def verify_command(ctx):
+    await bot_modules.verify(ctx, bot, server_running)
+
+
+@bot.command(name='ping')
+async def ping_command(ctx):
+    await bot_modules.ping(ctx)
 
 
 @bot.event
