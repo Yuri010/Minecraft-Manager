@@ -578,47 +578,45 @@ async def verify_command(ctx):
 
 @bot.command(name='snapshots')
 async def snapshots_command(ctx, action=None, *args):
-    skipver = True
-    if not skipver:
-        discord_id = ctx.author.id
-        c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
-        result = c.fetchone()
-        if result is None:
+    discord_id = ctx.author.id
+    c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
+    result = c.fetchone()
+    if result is None:
+        embed = discord.Embed(
+            description=':x: You need to verify your Minecraft account first using the `$verify` command.',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+
+    minecraft_username = result[1]
+
+    if action == 'list' or action == 'download':
+        if not has_required_role(ctx):
             embed = discord.Embed(
-                description=':x: You need to verify your Minecraft account first using the `$verify` command.',
+                description=':x: You do not have permission to use this command.',
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
             return
 
-        minecraft_username = result[1]
+    if action == 'create':
+        if not has_operator(minecraft_username):
+            embed = discord.Embed(
+                description=':x: You do not have permission to use this command.',
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
 
-        if action == 'list' or action == 'download':
-            if not has_required_role(ctx):
-                embed = discord.Embed(
-                    description=':x: You do not have permission to use this command.',
-                    color=discord.Color.red()
-                )
-                await ctx.send(embed=embed)
-                return
-
-        if action == 'create':
-            if not has_operator(minecraft_username):
-                embed = discord.Embed(
-                    description=':x: You do not have permission to use this command.',
-                    color=discord.Color.red()
-                )
-                await ctx.send(embed=embed)
-                return
-
-        if action == 'delete' or action == 'restore':
-            if not is_bot_owner(ctx):
-                embed = discord.Embed(
-                    description=':x: You do not have permission to use this command.',
-                    color=discord.Color.red()
-                )
-                await ctx.send(embed=embed)
-                return
+    if action == 'delete' or action == 'restore':
+        if not is_bot_owner(ctx):
+            embed = discord.Embed(
+                description=':x: You do not have permission to use this command.',
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
 
     if action == 'create':
         await bot_modules.create_snapshot(ctx, bot, server_running, suppress_success_message=False)
