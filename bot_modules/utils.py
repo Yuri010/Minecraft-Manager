@@ -1,4 +1,5 @@
 # version 1.3.0
+# This file houses miscellaneous utilities
 import discord
 import requests
 import time

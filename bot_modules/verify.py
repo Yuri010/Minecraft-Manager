@@ -1,13 +1,19 @@
 # version 1.3.0
+# This file is where the verification magic happens
 import discord
 import sqlite3
 import asyncio
 import mcrcon
 import random
 import configparser
+import os
 
+script_path = os.path.dirname(os.path.abspath(__file__))
+root_path = os.path.join(script_path, '..')
+db_path = os.path.join(root_path, 'minecraft_manager.db')
+config_path = os.path.join(root_path, 'config.cfg')
 
-conn = sqlite3.connect('minecraft_manager.db')
+conn = sqlite3.connect(db_path)
 c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS verification (
                 discord_id INTEGER PRIMARY KEY,
@@ -15,7 +21,7 @@ c.execute('''CREATE TABLE IF NOT EXISTS verification (
             )''')
 
 config = configparser.ConfigParser()
-config.read('config.cfg')
+config.read(config_path)
 
 rcon_host = config.get('PythonConfig', 'rcon_host')
 rcon_port = int(config.get('PythonConfig', 'rcon_port'))

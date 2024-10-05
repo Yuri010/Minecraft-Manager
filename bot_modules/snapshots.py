@@ -1,4 +1,5 @@
 # version 1.3.0
+# This file houses all logic for the snapshot commands
 import discord
 import os
 import time
@@ -6,7 +7,11 @@ import shutil
 import sqlite3
 import asyncio
 
-conn = sqlite3.connect('minecraft_manager.db')
+script_path = os.path.dirname(os.path.abspath(__file__))
+root_path = os.path.join(script_path, '..')
+db_path = os.path.join(root_path, 'minecraft_manager.db')
+
+conn = sqlite3.connect(db_path)
 c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS snapshots (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,12 +35,11 @@ async def create_snapshot(ctx, bot, server_running, suppress_success_message=Fal
     os.makedirs(temp_folder, exist_ok=True)
 
     try:
-        script_path = os.path.dirname(os.path.abspath(__file__))
-        snapshots_folder = os.path.join(script_path, "snapshots")
+        snapshots_folder = os.path.join(root_path, "snapshots")
 
         world_folders = ["world", "world_nether", "world_the_end"]
         for folder in world_folders:
-            shutil.copytree(os.path.join(script_path, "..", folder), os.path.join(temp_folder, folder))
+            shutil.copytree(os.path.join(root_path, "..", folder), os.path.join(temp_folder, folder))
 
         nameask = discord.Embed(
             description='📝 Please provide a name for this snapshot.',
@@ -250,10 +254,8 @@ async def restore_snapshot(ctx, bot, server_running, snapshot_name):
         await confirm_message.delete()
 
         world_folders = ["world", "world_nether", "world_the_end"]
-        script_path = os.path.dirname(os.path.abspath(__file__))
-
         for folder in world_folders:
-            shutil.rmtree(os.path.join(script_path, "..", folder), ignore_errors=True)
+            shutil.rmtree(os.path.join(root_path, "..", folder), ignore_errors=True)
 
         temp_folder = "temp_restore"
         os.makedirs(temp_folder, exist_ok=True)
@@ -262,7 +264,7 @@ async def restore_snapshot(ctx, bot, server_running, snapshot_name):
             shutil.unpack_archive(path, temp_folder)
 
             for folder in world_folders:
-                shutil.move(os.path.join(temp_folder, folder), os.path.join(script_path, ".."))
+                shutil.move(os.path.join(temp_folder, folder), os.path.join(root_path, ".."))
 
             shutil.rmtree(temp_folder, ignore_errors=True)
 

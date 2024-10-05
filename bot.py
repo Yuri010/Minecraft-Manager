@@ -28,7 +28,6 @@ config.read('config.cfg')
 TOKEN = config.get('PythonConfig', 'TOKEN')
 required_role = config.get('PythonConfig', 'required_role')
 bot_owner_id = int(config.get('PythonConfig', 'bot_owner_id'))
-server_running = False
 rcon_host = config.get('PythonConfig', 'rcon_host')
 rcon_port = int(config.get('PythonConfig', 'rcon_port'))
 rcon_password = config.get('PythonConfig', 'rcon_password')
@@ -38,40 +37,67 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='$', intents=intents)
 
+server_running = False
+
 
 def has_required_role(ctx):
     role = discord.utils.get(ctx.guild.roles, name=required_role)
     return role in ctx.author.roles
 
 
-def has_operator(minecraft_username):
+def has_operator(discord_id):
     try:
+        # Check the database if the user has verified their Minecraft account
+        c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
+        result = c.fetchone()
+
+        if result is None:
+            # User hasn't verified their Minecraft account
+            print(f"Error at 'has_operator': User {discord_id} not verified.")
+            return False, 'You need to verify your Minecraft account first using the `$verify` command.'
+
+        minecraft_username = result[1]
+
+        # Check if ops.json exists and is valid
         with open('../ops.json', 'r') as file:
             if os.stat('../ops.json').st_size == 0:
                 print("Error at 'has_operator': ops.json is empty.")
-                return False
+                return False, 'Operator list is empty. Please contact an admin.'
 
             ops_data = json.load(file)
+
+        # Check if the Minecraft username is an operator
+        for op in ops_data:
+            if op['name'] == minecraft_username:
+                return True, None  # User is an operator, no error message needed
+
+        # If user is verified but not an operator
+        return False, 'You do not have operator permissions on the Minecraft server.'
+
     except (FileNotFoundError, json.JSONDecodeError):
         print("Error at 'has_operator': Failed loading ops.json.")
-        return False
-
-    for op in ops_data:
-        if op['name'] == minecraft_username:
-            return True
-
-
-def is_bot_owner(ctx):
-    return ctx.author.id == bot_owner_id
-
-
-async def get_public_ip():
-    await bot_modules.get_public_ip()
+        return False, 'Failed to load operator list. Please contact an admin.'
 
 
 @bot.command(name='start')
-@commands.check(has_required_role)
 async def start(ctx):
+    discord_id = ctx.author.id
+
+    if ctx.author.id == bot_owner_id:
+        pass
+    elif has_required_role(ctx):
+        pass
+    else:
+        # Check if the user is a Minecraft operator
+        is_op, error_message = has_operator(discord_id)
+        if not is_op:
+            embed = discord.Embed(
+                description=f':x: {error_message}',
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
     global server_running
 
     if server_running:
@@ -89,7 +115,7 @@ async def start(ctx):
         await bot.change_presence(activity=discord.Game(name="a Minecraft Server"))
 
         await asyncio.sleep(45)
-        public_ip = await get_public_ip()
+        public_ip = await bot_modules.get_public_ip()
         if public_ip:
             public_ip = public_ip.replace('tcp://', '')
             embed = discord.Embed(
@@ -109,38 +135,22 @@ async def start(ctx):
         await message.edit(embed=embed)
 
 
-@start.error
-async def start_error(ctx, error):
-    if isinstance(error, commands.CheckFailure):
-        embed = discord.Embed(
-            title="❌ Missing Role",
-            description=f"You are missing the '{required_role}' role to start the server.",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-
-
 @bot.command(name='stop')
 async def stop_command(ctx):
     discord_id = ctx.author.id
-    c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
-    result = c.fetchone()
-    if result is None:
-        embed = discord.Embed(
-            description=':x: You need to verify your Minecraft account first using the `$verify` command.',
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return
 
-    minecraft_username = result[1]
-    if not has_operator(minecraft_username) and not is_bot_owner(ctx):
-        embed = discord.Embed(
-            description=':x: You do not have permission to use this command.',
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return
+    if ctx.author.id == bot_owner_id:
+        pass
+    else:
+        # Check if the user is a Minecraft operator
+        is_op, error_message = has_operator(discord_id)
+        if not is_op:
+            embed = discord.Embed(
+                description=f':x: {error_message}',
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
 
     if not server_running:
         embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
@@ -160,16 +170,12 @@ async def stop_command(ctx):
 
 
 @bot.command(name='shutdown')
-@commands.check(is_bot_owner)
 async def shutdown_bot(ctx):
-    embed = discord.Embed(description=':stop_button: Shutting down the bot...', color=discord.Color.red())
-    await ctx.send(embed=embed)
-    await bot.close()
-
-
-@shutdown_bot.error
-async def shutdown_error(ctx, error):
-    if isinstance(error, commands.CheckFailure):
+    if ctx.author.id == bot_owner_id:
+        embed = discord.Embed(description=':stop_button: Shutting down the bot...', color=discord.Color.red())
+        await ctx.send(embed=embed)
+        await bot.close()
+    else:
         embed = discord.Embed(
             title="❌ Missing Permissions",
             description="Only the Minecraft Server Owner can issue this command.",
@@ -179,70 +185,80 @@ async def shutdown_error(ctx, error):
 
 
 @bot.command(name='update')
-@commands.check(is_bot_owner)
 async def update_bot(ctx):
-    async with aiohttp.ClientSession() as session:
-        async with session.get("https://api.github.com/repos/yuri010/minecraft-manager/releases/latest") as response:
-            data = await response.json()
-            latest_version = data.get("tag_name", "Unknown")
+    if ctx.author.id == bot_owner_id:
 
-    if latest_version > BOT_VERSION:
-        embed = discord.Embed(
-            description=f'🔄 A new version ({latest_version} over {BOT_VERSION}) is available!\
-                  Do you want to update now?',
-            color=discord.Color.blue()
-        )
-        message = await ctx.send(embed=embed)
-        await message.add_reaction('✅')
-        await message.add_reaction('❌')
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                "https://api.github.com/repos/yuri010/minecraft-manager/releases/latest"
+            ) as response:
+                data = await response.json()
+                latest_version = data.get("tag_name", "Unknown")
 
-        def check(reaction, user):
-            return user == ctx.author and str(reaction.emoji) in ['✅', '❌'] and reaction.message.id == message.id
-
-        try:
-            reaction, _ = await bot.wait_for('reaction_add', timeout=60.0, check=check)
-
-            if str(reaction.emoji) == '✅':
-                confirm_embed = discord.Embed(
-                    description='🔄 The bot will restart to perform an update. Please wait...',
-                    color=discord.Color.blue()
-                )
-                await message.edit(embed=confirm_embed)
-                await message.clear_reactions()
-                try:
-                    subprocess.Popen('start cmd /c "updater.bat -autostart"', shell=True)
-                    await bot.close()
-                except Exception as e:
-                    error_embed = discord.Embed(
-                        description=f':x: An error occurred while starting the update: {str(e)}',
-                        color=discord.Color.red()
-                    )
-                    await message.edit(embed=error_embed)
-            else:
-                cancel_embed = discord.Embed(
-                    description=':x: Update canceled.',
-                    color=discord.Color.green()
-                )
-                await message.edit(embed=cancel_embed)
-
-        except asyncio.TimeoutError:
-            timeout_embed = discord.Embed(
-                description=':x: Update process timed out.',
+        if latest_version < BOT_VERSION:
+            embed = discord.Embed(
+                description=f'❌ Current version ({BOT_VERSION}) is newer than\
+                    the latest public build ({latest_version})!\n\
+                        Update aborted.',
                 color=discord.Color.red()
             )
-            await message.edit(embed=timeout_embed)
+            await ctx.send(embed=embed)
+            return
+
+        if latest_version > BOT_VERSION:
+            embed = discord.Embed(
+                description=f'🔄 A new version ({latest_version} over {BOT_VERSION}) is available!\
+                    Do you want to update now?',
+                color=discord.Color.blue()
+            )
+            message = await ctx.send(embed=embed)
+            await message.add_reaction('✅')
+            await message.add_reaction('❌')
+
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) in ['✅', '❌'] and reaction.message.id == message.id
+
+            try:
+                reaction, _ = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+
+                if str(reaction.emoji) == '✅':
+                    confirm_embed = discord.Embed(
+                        description='🔄 The bot will restart to perform an update. Please wait...',
+                        color=discord.Color.blue()
+                    )
+                    await message.edit(embed=confirm_embed)
+                    await message.clear_reactions()
+                    try:
+                        subprocess.Popen('start cmd /c "updater.bat -autostart"', shell=True)
+                        await bot.close()
+                    except Exception as e:
+                        error_embed = discord.Embed(
+                            description=f':x: An error occurred while starting the update: {str(e)}',
+                            color=discord.Color.red()
+                        )
+                        await message.edit(embed=error_embed)
+                else:
+                    cancel_embed = discord.Embed(
+                        description=':x: Update canceled.',
+                        color=discord.Color.green()
+                    )
+                    await message.edit(embed=cancel_embed)
+
+            except asyncio.TimeoutError:
+                timeout_embed = discord.Embed(
+                    description=':x: Update process timed out.',
+                    color=discord.Color.red()
+                )
+                await message.edit(embed=timeout_embed)
+
+        else:
+            up_to_date_embed = discord.Embed(
+                description=f'✅ The bot is already up to date (Version {BOT_VERSION}).',
+                color=discord.Color.green()
+            )
+            await ctx.send(embed=up_to_date_embed)
 
     else:
-        up_to_date_embed = discord.Embed(
-            description=f'✅ The bot is already up to date (Version {BOT_VERSION}).',
-            color=discord.Color.green()
-        )
-        await ctx.send(embed=up_to_date_embed)
-
-
-@update_bot.error
-async def update_error(ctx, error):
-    if isinstance(error, commands.CheckFailure):
         embed = discord.Embed(
             title="❌ Missing Permissions",
             description="Only the Minecraft Server Owner can issue this command.",
@@ -254,24 +270,21 @@ async def update_error(ctx, error):
 @bot.command(name='console')
 async def console_command(ctx, *, command):
     discord_id = ctx.author.id
-    c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
-    result = c.fetchone()
-    if result is None:
-        embed = discord.Embed(
-            description=':x: You need to verify your Minecraft account first using the `$verify` command.',
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return
 
-    minecraft_username = result[1]
-    if not has_operator(minecraft_username) and not is_bot_owner(ctx):
-        embed = discord.Embed(
-            description=':x: You do not have permission to use this command.',
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return
+    if ctx.author.id == bot_owner_id:
+        pass
+    elif has_required_role(ctx.author):
+        pass
+    else:
+        # Check if the user is a Minecraft operator
+        is_op, error_message = has_operator(discord_id)
+        if not is_op:
+            embed = discord.Embed(
+                description=f':x: {error_message}',
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
 
     try:
         with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
@@ -300,7 +313,7 @@ async def console_error(ctx, error):
 @bot.command(name='status')
 async def status_command(ctx):
     embed_color = discord.Color.red()
-    public_ip = await get_public_ip() if server_running else None
+    public_ip = await bot_modules.get_public_ip() if server_running else None
 
     if server_running:
         embed_color = discord.Color.green()
@@ -342,17 +355,6 @@ async def status_command(ctx):
 @bot.command(name='snapshots')
 async def snapshots_command(ctx, action=None, *args):
     discord_id = ctx.author.id
-    c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
-    result = c.fetchone()
-    if result is None:
-        embed = discord.Embed(
-            description=':x: You need to verify your Minecraft account first using the `$verify` command.',
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return
-
-    minecraft_username = result[1]
 
     if action == 'list' or action == 'download':
         if not has_required_role(ctx):
@@ -364,16 +366,17 @@ async def snapshots_command(ctx, action=None, *args):
             return
 
     if action == 'create':
-        if not has_operator(minecraft_username):
+        is_op, error_message = has_operator(discord_id)
+        if not is_op:
             embed = discord.Embed(
-                description=':x: You do not have permission to use this command.',
+                description=f':x: {error_message}',
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
             return
 
     if action == 'delete' or action == 'restore':
-        if not is_bot_owner(ctx):
+        if not ctx.author.id == bot_owner_id:
             embed = discord.Embed(
                 description=':x: You do not have permission to use this command.',
                 color=discord.Color.red()
