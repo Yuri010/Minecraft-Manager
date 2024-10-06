@@ -356,44 +356,57 @@ async def status_command(ctx):
 async def snapshots_command(ctx, action=None, *args):
     discord_id = ctx.author.id
 
-    if action == 'list' or action == 'download':
-        if not has_required_role(ctx):
-            embed = discord.Embed(
-                description=':x: You do not have permission to use this command.',
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
+    if action == 'list' or action is None:  # When 'list' or no arguments are given, simply list the snapshots
+        await bot_modules.list_snapshots(ctx)
+        return
 
     if action == 'create':
-        is_op, error_message = has_operator(discord_id)
-        if not is_op:
-            embed = discord.Embed(
-                description=f':x: {error_message}',
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
-
-    if action == 'delete' or action == 'restore':
-        if not ctx.author.id == bot_owner_id:
-            embed = discord.Embed(
-                description=':x: You do not have permission to use this command.',
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
-
-    if action == 'create':
+        # Check if the user is the bot owner first
+        if discord_id != bot_owner_id:
+            # If not the owner, check if they are an operator
+            is_op, error_message = has_operator(discord_id)
+            if not is_op:
+                embed = discord.Embed(
+                    description=f':x: {error_message}',
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+                return
         await bot_modules.create_snapshot(ctx, bot, server_running, suppress_success_message=False)
-    elif action == 'delete':
+        return
+
+    # Check if user is owner before executing descructive commands
+    if action in ['delete', 'restore'] and discord_id != bot_owner_id:
+        embed = discord.Embed(
+            description=':x: You do not have permission to use this command.',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+
+    # Ensure snapshot name is provided for 'delete', 'restore', and 'download'
+    if action in ['delete', 'restore', 'download']:
+        if not args:  # If no snapshot name is provided
+            embed = discord.Embed(
+                description=f':x: You must provide a snapshot name for the `{action}` command.',
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+    # Process the commands if snapshot name is provided
+    if action == 'delete':
         await bot_modules.delete_snapshot(ctx, bot, ' '.join(args))
     elif action == 'restore':
         await bot_modules.restore_snapshot(ctx, bot, server_running, ' '.join(args))
     elif action == 'download':
         await bot_modules.download_snapshot(ctx, bot, ' '.join(args))
     else:
-        await bot_modules.list_snapshots(ctx)
+        embed = discord.Embed(
+            description=f':x: Unknown action `{action}`.',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
 
 
 @bot.command(name='info')

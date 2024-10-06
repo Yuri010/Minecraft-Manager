@@ -24,93 +24,6 @@ c.execute('''CREATE TABLE IF NOT EXISTS snapshots (
             )''')
 
 
-async def create_snapshot(ctx, bot, server_running, suppress_success_message=False):
-    if server_running:
-        embed = discord.Embed(description=':x: Cannot create a snapshot while the server is running.',
-                              color=discord.Color.red())
-        await ctx.send(embed=embed)
-        return
-
-    temp_folder = "temp_snapshot"
-    os.makedirs(temp_folder, exist_ok=True)
-
-    try:
-        snapshots_folder = os.path.join(root_path, "snapshots")
-
-        world_folders = ["world", "world_nether", "world_the_end"]
-        for folder in world_folders:
-            shutil.copytree(os.path.join(root_path, "..", folder), os.path.join(temp_folder, folder))
-
-        nameask = discord.Embed(
-            description='📝 Please provide a name for this snapshot.',
-            color=discord.Color.blue()
-        )
-        namemsg = await ctx.send(embed=nameask)
-
-        def check_author(m):
-            return m.author == ctx.author and m.channel == ctx.channel
-
-        try:
-            name_reply = await bot.wait_for('message', check=check_author, timeout=120)
-            snapshot_name = name_reply.content
-        except asyncio.TimeoutError:
-            snapshot_name = f"Snapshot {int(time.time())}"
-
-        descask = discord.Embed(
-            description='📝 Please provide a description for this snapshot.',
-            color=discord.Color.blue()
-        )
-        descmsg = await ctx.send(embed=descask)
-
-        try:
-            desc_reply = await bot.wait_for('message', check=check_author, timeout=120)
-            snapshot_description = desc_reply.content
-        except asyncio.TimeoutError:
-            snapshot_description = ""
-
-        waitembed = discord.Embed(
-            description=f':rocket: Creating snapshot {snapshot_name}...',
-            color=discord.Color.blue()
-        )
-        waitmsg = await ctx.send(embed=waitembed)
-
-        snapshot_filename = f"snapshot_{int(time.time())}"
-        snapshot_path = os.path.join(snapshots_folder, snapshot_filename)
-
-        shutil.make_archive(snapshot_path, 'zip', temp_folder)
-
-        file_size = os.path.getsize(f"{snapshot_path}.zip")
-
-        current_date = time.strftime('%Y-%m-%d %H:%M:%S')
-        c.execute("INSERT INTO snapshots(filename, fancy_name, path, file_size, date, notes) VALUES (?, ?, ?, ?, ?, ?)",
-                  (f"{snapshot_filename}.zip", snapshot_name, f"{snapshot_path}.zip", file_size, current_date,
-                   snapshot_description))
-        conn.commit()
-
-        if not suppress_success_message:
-            success_embed = discord.Embed(
-                description=f':white_check_mark: Snapshot "{snapshot_name}" created successfully.',
-                color=discord.Color.green()
-            )
-            await waitmsg.edit(embed=success_embed)
-
-    except Exception as e:
-        error_embed = discord.Embed(
-            description=f':x: Failed to create snapshot "{snapshot_name}": {str(e)}',
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=error_embed)
-
-    finally:
-        shutil.rmtree(temp_folder, ignore_errors=True)
-        await namemsg.delete()
-        await descmsg.delete()
-        await name_reply.delete()
-        await desc_reply.delete()
-        if suppress_success_message:
-            await waitmsg.delete()
-
-
 async def list_snapshots(ctx):
     c.execute("SELECT * FROM snapshots")
     snapshots = c.fetchall()
@@ -144,6 +57,93 @@ async def list_snapshots(ctx):
     else:
         normal_embed.description = 'No snapshots available.'
         await ctx.send(embed=normal_embed)
+
+
+async def create_snapshot(ctx, bot, server_running, suppress_success_message):
+    if server_running:
+        embed = discord.Embed(description=':x: Cannot create a snapshot while the server is running.',
+                              color=discord.Color.red())
+        await ctx.send(embed=embed)
+        return
+
+    temp_folder = "temp_snapshot"
+    os.makedirs(temp_folder, exist_ok=True)
+
+    try:
+        snapshots_folder = os.path.join(root_path, "snapshots")
+
+        world_folders = ["world", "world_nether", "world_the_end"]
+        for folder in world_folders:
+            shutil.copytree(os.path.join(root_path, "..", folder), os.path.join(temp_folder, folder))
+
+        embed = discord.Embed(
+            description='📝 Please provide a name for this snapshot.',
+            color=discord.Color.blue()
+        )
+        name_q = await ctx.send(embed=embed)
+
+        def check_author(m):
+            return m.author == ctx.author and m.channel == ctx.channel
+
+        try:
+            name_a = await bot.wait_for('message', check=check_author, timeout=120)
+            snapshot_name = name_a.content
+        except asyncio.TimeoutError:
+            snapshot_name = f"Snapshot {int(time.time())}"
+
+        embed = discord.Embed(
+            description='📝 Please provide a description for this snapshot.',
+            color=discord.Color.blue()
+        )
+        desc_q = await ctx.send(embed=embed)
+
+        try:
+            desc_a = await bot.wait_for('message', check=check_author, timeout=120)
+            snapshot_description = desc_a.content
+        except asyncio.TimeoutError:
+            snapshot_description = ""
+
+        embed = discord.Embed(
+            description=f':rocket: Creating snapshot {snapshot_name}...',
+            color=discord.Color.blue()
+        )
+        waitembed = await ctx.send(embed=embed)
+
+        snapshot_filename = f"snapshot_{int(time.time())}"
+        snapshot_path = os.path.join(snapshots_folder, snapshot_filename)
+
+        shutil.make_archive(snapshot_path, 'zip', temp_folder)
+
+        file_size = os.path.getsize(f"{snapshot_path}.zip")
+
+        current_date = time.strftime('%Y-%m-%d %H:%M:%S')
+        c.execute("INSERT INTO snapshots(filename, fancy_name, path, file_size, date, notes) VALUES (?, ?, ?, ?, ?, ?)",
+                  (f"{snapshot_filename}.zip", snapshot_name, f"{snapshot_path}.zip", file_size, current_date,
+                   snapshot_description))
+        conn.commit()
+
+        if not suppress_success_message:
+            embed = discord.Embed(
+                description=f':white_check_mark: Snapshot "{snapshot_name}" created successfully.',
+                color=discord.Color.green()
+            )
+            await waitembed.edit(embed=embed)
+
+    except Exception as e:
+        embed = discord.Embed(
+            description=f':x: Failed to create snapshot "{snapshot_name}": {str(e)}',
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+
+    finally:
+        shutil.rmtree(temp_folder, ignore_errors=True)
+        await name_q.delete()
+        await desc_q.delete()
+        await name_a.delete()
+        await desc_a.delete()
+        if suppress_success_message:
+            await waitembed.delete()
 
 
 async def delete_snapshot(ctx, bot, snapshot_name):
