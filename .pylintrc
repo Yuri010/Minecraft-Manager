@@ -1,0 +1,11 @@
+[MASTER]
+
+# Disable specific warnings:
+#   C0103: invalid-name
+#   C0116: missing-function-docstring
+#   C0304: missing-final-newline
+#   W0718: broad-exception-caught
+disable=C0103, C0116, C0304, W0718
+
+# Maximum line length for the code
+max-line-length=120
