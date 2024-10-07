@@ -1,11 +1,16 @@
 # version 1.3.0
 # This file houses all logic for the snapshot commands
-import discord
-from pathlib import Path
-import time
+
+# Standard library imports
+import asyncio
 import shutil
 import sqlite3
-import asyncio
+import time
+from pathlib import Path
+
+# Third-party imports
+import discord
+
 
 # Get the absolute path of the script
 script_path = Path(__file__).resolve().parent
@@ -67,8 +72,8 @@ async def list_snapshots(ctx):
         await ctx.send(embed=normal_embed)
 
 
-async def create_snapshot(ctx, bot, server_running, suppress_success_message):
-    if server_running:
+async def create_snapshot(ctx, bot, SERVER_RUNNING, suppress_success_message):
+    if SERVER_RUNNING:
         embed = discord.Embed(description=':x: Cannot create a snapshot while the server is running.',
                               color=discord.Color.red())
         await ctx.send(embed=embed)
@@ -196,7 +201,7 @@ async def delete_snapshot(ctx, bot, snapshot_name):
         await ctx.send(embed=embed)
         return
 
-    snapshot_id, filename, fancy_name, path, file_size, date, notes = snapshot
+    snapshot_id, fancy_name, path = snapshot
     file_path = Path(path)
 
     delete_embed = discord.Embed(
@@ -243,8 +248,8 @@ async def delete_snapshot(ctx, bot, snapshot_name):
         await delete_message.clear_reactions()
 
 
-async def restore_snapshot(ctx, bot, server_running, snapshot_name):
-    if server_running:
+async def restore_snapshot(ctx, bot, SERVER_RUNNING, snapshot_name):
+    if SERVER_RUNNING:
         embed = discord.Embed(description=':x: Cannot restore a snapshot while the server is running.',
                               color=discord.Color.red())
         await ctx.send(embed=embed)
@@ -262,7 +267,7 @@ async def restore_snapshot(ctx, bot, server_running, snapshot_name):
         await ctx.send(embed=embed)
         return
 
-    snapshot_id, filename, fancy_name, path, file_size, date, notes = snapshot
+    fancy_name, path = snapshot
     snapshot_path = Path(path)
 
     # Prompt user for confirmation before restoring
@@ -291,7 +296,7 @@ async def restore_snapshot(ctx, bot, server_running, snapshot_name):
         return
 
     if str(reaction.emoji) == '✅':
-        await create_snapshot(ctx, bot, server_running, suppress_success_message=True)
+        await create_snapshot(ctx, bot, SERVER_RUNNING, suppress_success_message=True)
         await confirm_message.delete()
 
         # Prepare embed to update during the process

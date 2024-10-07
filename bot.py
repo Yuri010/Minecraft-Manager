@@ -1,17 +1,24 @@
 # version 1.3.0
-import discord
-from discord.ext import commands
-import bot_modules
-import subprocess
-import time
-import mcrcon
-import configparser
-import socket
+
+# Standard Library Imports
 import asyncio
-import sqlite3
+import configparser
 import json
 import os
+import socket
+import sqlite3
+import subprocess
+import time
+
+# Third-party imports
 import aiohttp
+import discord
+import mcrcon
+from discord.ext import commands
+
+# First-party imports
+import bot_modules
+
 
 BOT_VERSION = "1.3.0"
 
@@ -26,22 +33,22 @@ config = configparser.ConfigParser()
 config.read('config.cfg')
 
 TOKEN = config.get('PythonConfig', 'TOKEN')
-required_role = config.get('PythonConfig', 'required_role')
-bot_owner_id = int(config.get('PythonConfig', 'bot_owner_id'))
-rcon_host = config.get('PythonConfig', 'rcon_host')
-rcon_port = int(config.get('PythonConfig', 'rcon_port'))
-rcon_password = config.get('PythonConfig', 'rcon_password')
+REQUIRED_ROLE = config.get('PythonConfig', 'required_role')
+BOT_OWNER_ID = int(config.get('PythonConfig', 'bot_owner_id'))
+RCON_HOST = config.get('PythonConfig', 'rcon_host')
+RCON_PORT = int(config.get('PythonConfig', 'rcon_port'))
+RCON_PASSWORD = config.get('PythonConfig', 'rcon_password')
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix='$', intents=intents)
 
-server_running = False
+SERVER_RUNNING = False
 
 
 def has_required_role(ctx):
-    role = discord.utils.get(ctx.guild.roles, name=required_role)
+    role = discord.utils.get(ctx.guild.roles, name=REQUIRED_ROLE)
     return role in ctx.author.roles
 
 
@@ -83,7 +90,7 @@ def has_operator(discord_id):
 async def start(ctx):
     discord_id = ctx.author.id
 
-    if ctx.author.id == bot_owner_id:
+    if ctx.author.id == BOT_OWNER_ID:
         pass
     elif has_required_role(ctx):
         pass
@@ -98,9 +105,9 @@ async def start(ctx):
             await ctx.send(embed=embed)
             return
 
-    global server_running
+    global SERVER_RUNNING
 
-    if server_running:
+    if SERVER_RUNNING:
         embed = discord.Embed(description=':x: The Minecraft server is already running.', color=discord.Color.red())
         await ctx.send(embed=embed)
         return
@@ -111,7 +118,7 @@ async def start(ctx):
 
     try:
         subprocess.Popen('start cmd /c "start.bat -y"', shell=True)
-        server_running = True
+        SERVER_RUNNING = True
         await bot.change_presence(activity=discord.Game(name="a Minecraft Server"))
 
         await asyncio.sleep(45)
@@ -139,7 +146,7 @@ async def start(ctx):
 async def stop_command(ctx):
     discord_id = ctx.author.id
 
-    if ctx.author.id == bot_owner_id:
+    if ctx.author.id == BOT_OWNER_ID:
         pass
     else:
         # Check if the user is a Minecraft operator
@@ -152,13 +159,13 @@ async def stop_command(ctx):
             await ctx.send(embed=embed)
             return
 
-    if not server_running:
+    if not SERVER_RUNNING:
         embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
         await ctx.send(embed=embed)
         return
 
     try:
-        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
+        with mcrcon.MCRcon(RCON_HOST, RCON_PASSWORD, port=RCON_PORT) as rcon:
             rcon.command('stop')
             embed = discord.Embed(description=':stop_button: Sent the `stop` command to the Minecraft server.',
                                   color=discord.Color.green())
@@ -171,7 +178,7 @@ async def stop_command(ctx):
 
 @bot.command(name='shutdown')
 async def shutdown_bot(ctx):
-    if ctx.author.id == bot_owner_id:
+    if ctx.author.id == BOT_OWNER_ID:
         embed = discord.Embed(description=':stop_button: Shutting down the bot...', color=discord.Color.red())
         await ctx.send(embed=embed)
         await bot.close()
@@ -186,7 +193,7 @@ async def shutdown_bot(ctx):
 
 @bot.command(name='update')
 async def update_bot(ctx):
-    if ctx.author.id == bot_owner_id:
+    if ctx.author.id == BOT_OWNER_ID:
 
         async with aiohttp.ClientSession() as session:
             async with session.get(
@@ -271,7 +278,7 @@ async def update_bot(ctx):
 async def console_command(ctx, *, command):
     discord_id = ctx.author.id
 
-    if ctx.author.id == bot_owner_id:
+    if ctx.author.id == BOT_OWNER_ID:
         pass
     elif has_required_role(ctx.author):
         pass
@@ -287,7 +294,7 @@ async def console_command(ctx, *, command):
             return
 
     try:
-        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
+        with mcrcon.MCRcon(RCON_HOST, RCON_PASSWORD, port=RCON_PORT) as rcon:
             response = rcon.command(command)
             embed = discord.Embed(title='Minecraft Console', description=f'Command: {command}',
                                   color=discord.Color.green())
@@ -313,9 +320,9 @@ async def console_error(ctx, error):
 @bot.command(name='status')
 async def status_command(ctx):
     embed_color = discord.Color.red()
-    public_ip = await bot_modules.get_public_ip() if server_running else None
+    public_ip = await bot_modules.get_public_ip() if SERVER_RUNNING else None
 
-    if server_running:
+    if SERVER_RUNNING:
         embed_color = discord.Color.green()
         try:
             host, port = public_ip.replace('tcp://', '').split(':')[:2] if ':' in public_ip else (public_ip, '25565')
@@ -330,10 +337,10 @@ async def status_command(ctx):
             print('Failed to check server status: string conversion error.')
 
     embed = discord.Embed(title='Server Status', color=embed_color)
-    embed.add_field(name='Status', value='Running' if server_running else 'Stopped', inline=False)
-    embed.add_field(name='IP', value=public_ip.replace('tcp://', '') if server_running else 'N/A', inline=False)
+    embed.add_field(name='Status', value='Running' if SERVER_RUNNING else 'Stopped', inline=False)
+    embed.add_field(name='IP', value=public_ip.replace('tcp://', '') if SERVER_RUNNING else 'N/A', inline=False)
 
-    if server_running:
+    if SERVER_RUNNING:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.settimeout(3)
@@ -362,7 +369,7 @@ async def snapshots_command(ctx, action=None, *args):
 
     if action == 'create':
         # Check if the user is the bot owner first
-        if discord_id != bot_owner_id:
+        if discord_id != BOT_OWNER_ID:
             # If not the owner, check if they are an operator
             is_op, error_message = has_operator(discord_id)
             if not is_op:
@@ -372,11 +379,11 @@ async def snapshots_command(ctx, action=None, *args):
                 )
                 await ctx.send(embed=embed)
                 return
-        await bot_modules.create_snapshot(ctx, bot, server_running, suppress_success_message=False)
+        await bot_modules.create_snapshot(ctx, bot, SERVER_RUNNING, suppress_success_message=False)
         return
 
     # Check if user is owner before executing descructive commands
-    if action in ['delete', 'restore'] and discord_id != bot_owner_id:
+    if action in ['delete', 'restore'] and discord_id != BOT_OWNER_ID:
         embed = discord.Embed(
             description=':x: You do not have permission to use this command.',
             color=discord.Color.red()
@@ -398,7 +405,7 @@ async def snapshots_command(ctx, action=None, *args):
     if action == 'delete':
         await bot_modules.delete_snapshot(ctx, bot, ' '.join(args))
     elif action == 'restore':
-        await bot_modules.restore_snapshot(ctx, bot, server_running, ' '.join(args))
+        await bot_modules.restore_snapshot(ctx, bot, SERVER_RUNNING, ' '.join(args))
     elif action == 'download':
         await bot_modules.download_snapshot(ctx, ' '.join(args))
     else:
@@ -419,7 +426,7 @@ async def info_command(ctx, action=None):
 
 @bot.command(name='verify')
 async def verify_command(ctx):
-    await bot_modules.verify(ctx, bot, server_running)
+    await bot_modules.verify(ctx, bot, SERVER_RUNNING)
 
 
 @bot.command(name='ping')

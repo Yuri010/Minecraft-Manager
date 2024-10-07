@@ -1,8 +1,12 @@
 # version 1.3.0
 # This file houses miscellaneous utilities
+
+# Standard library imports
+import time
+
+# Third-party imports
 import discord
 import requests
-import time
 
 
 async def get_public_ip():

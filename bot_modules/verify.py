@@ -1,12 +1,17 @@
 # version 1.3.0
 # This file is where the verification magic happens
-import discord
-import sqlite3
+
+# Standard library imports
 import asyncio
-import mcrcon
-import random
 import configparser
 import os
+import random
+import sqlite3
+
+# Third-party imports
+import discord
+import mcrcon
+
 
 script_path = os.path.dirname(os.path.abspath(__file__))
 root_path = os.path.join(script_path, '..')
@@ -23,13 +28,13 @@ c.execute('''CREATE TABLE IF NOT EXISTS verification (
 config = configparser.ConfigParser()
 config.read(config_path)
 
-rcon_host = config.get('PythonConfig', 'rcon_host')
-rcon_port = int(config.get('PythonConfig', 'rcon_port'))
-rcon_password = config.get('PythonConfig', 'rcon_password')
+RCON_HOST = config.get('PythonConfig', 'rcon_host')
+RCON_PORT = int(config.get('PythonConfig', 'rcon_port'))
+RCON_PASSWORD = config.get('PythonConfig', 'rcon_password')
 
 
-async def verify(ctx, bot, server_running):
-    if not server_running:
+async def verify(ctx, bot, SERVER_RUNNING):
+    if not SERVER_RUNNING:
         embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
         await ctx.send(embed=embed)
         return
@@ -101,7 +106,7 @@ async def verify(ctx, bot, server_running):
         return
 
     try:
-        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
+        with mcrcon.MCRcon(RCON_HOST, RCON_PASSWORD, port=RCON_PORT) as rcon:
             response = rcon.command('list')
     except mcrcon.MCRconException:
         embed = discord.Embed(
@@ -122,7 +127,7 @@ async def verify(ctx, bot, server_running):
     verification_code = ''.join(random.choices('0123456789', k=6))
 
     try:
-        with mcrcon.MCRcon(rcon_host, rcon_password, port=rcon_port) as rcon:
+        with mcrcon.MCRcon(RCON_HOST, RCON_PASSWORD, port=RCON_PORT) as rcon:
             rcon.command(f'w {minecraft_username} Discord verification code: {verification_code}')
     except mcrcon.MCRconException:
         embed = discord.Embed(

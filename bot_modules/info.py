@@ -1,8 +1,13 @@
 # version 1.3.0
 # This file is where the info command lives
-import discord
+
+# Standard library imports
 import datetime
+
+# Third-party imports
 import aiohttp
+import discord
+
 
 BOT_VERSION = "1.3.0"
 
