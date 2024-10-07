@@ -1,5 +1,24 @@
-# version 1.3.0
-# This file is where the info command lives
+"""
+info.py
+
+Version: 1.3.0
+
+This module contains functionality for the Discord bot's info commands,
+which provide users with information about the bot and its capabilities.
+It includes commands to display general information, bot commands, and
+snapshot management commands.
+
+Functions:
+    - info(ctx, bot): Sends an embed message containing general information about the bot and its commands.
+    - info_snapshots(ctx, bot): Sends an embed message with information about available snapshot management commands.
+
+Attributes:
+    - BOT_VERSION: A string representing the current version of the bot.
+
+Notes:
+    - The `info` function retrieves the latest release version from GitHub to indicate if an update is available.
+    - Discord embed formatting is used to enhance the user experience when displaying information.
+"""
 
 # Standard library imports
 import datetime

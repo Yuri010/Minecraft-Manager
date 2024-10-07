@@ -1,5 +1,23 @@
-# version 1.3.0
-# This file houses miscellaneous utilities
+"""
+utils.py
+
+Version: 1.3.0
+
+This module houses miscellaneous utility functions used by the Discord bot.
+These functions provide various helper capabilities, such as retrieving the public
+IP address and measuring the latency of commands.
+
+Functions:
+    - get_public_ip(): Asynchronously retrieves the public IP address from a local API.
+    - ping(ctx): Sends a ping message to the Discord channel and measures the latency.
+
+Notes:
+    - The `get_public_ip()` function makes an HTTP request to a local server,
+      and may fail if the server is not running or if there is no internet connection.
+    - The `ping()` function calculates latency based on the time taken to send
+      a message and receive the response, and it returns this value in milliseconds.
+"""
+
 
 # Standard library imports
 import time

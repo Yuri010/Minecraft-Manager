@@ -1,5 +1,36 @@
-# version 1.3.0
-# This file houses all logic for the snapshot commands
+"""
+snapshots.py
+
+Version: 1.3.0
+
+This module houses all logic for managing Minecraft world snapshots within
+the Discord bot. It includes functions to create, list, restore, delete,
+and download snapshots, allowing users to manage their Minecraft server
+worlds effectively.
+
+Functions:
+    - list_snapshots(ctx): Fetches and displays a list of all snapshots.
+    - create_snapshot(ctx, bot, SERVER_RUNNING, suppress_success_message):
+      Creates a new snapshot of the world, handling user input and warnings.
+    - delete_snapshot(ctx, bot, snapshot_name): Deletes a specified snapshot
+      after user confirmation.
+    - restore_snapshot(ctx, bot, SERVER_RUNNING, snapshot_name): Restores the
+      server from a specified snapshot, creating a new snapshot beforehand.
+    - download_snapshot(ctx, snapshot_name): Downloads a specified snapshot
+      to the Discord channel.
+
+Attributes:
+    - db_path: The path to the SQLite database for snapshot management.
+    - conn: The SQLite connection to the database.
+    - c: The cursor object for executing SQL commands.
+
+Notes:
+    - The module interacts with the SQLite database to store snapshot details.
+    - It uses Discord's embed functionality to communicate with users in
+      a visually appealing manner.
+    - Ensure the Minecraft server is not running when creating or restoring snapshots.
+"""
+
 
 # Standard library imports
 import asyncio

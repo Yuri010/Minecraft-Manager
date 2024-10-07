@@ -1,5 +1,31 @@
-# version 1.3.0
-# This file is where the verification magic happens
+"""
+verify.py
+
+Version: 1.3.0
+
+This module contains functionality for the verification process of users
+linking their Discord and Minecraft accounts. It handles the entire
+verification flow, including checking if the server is running,
+sending and receiving verification codes, and updating the database
+with the verified information.
+
+Functions:
+    - verify(ctx, bot, SERVER_RUNNING): Manages the verification process,
+      including sending DMs, handling user input, and updating the database.
+
+Attributes:
+    - RCON_HOST: The host address for the Minecraft server RCON.
+    - RCON_PORT: The port for the Minecraft server RCON.
+    - RCON_PASSWORD: The password for the Minecraft server RCON.
+    - BOT_VERSION: The current version of the bot.
+
+Notes:
+    - The verification process requires that the Minecraft server is running.
+    - Users must provide their Minecraft username, which is checked against
+      the server's online players before verification.
+    - The module uses the `mcrcon` library to interact with the Minecraft server.
+"""
+
 
 # Standard library imports
 import asyncio
