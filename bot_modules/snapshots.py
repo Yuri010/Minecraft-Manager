@@ -10,11 +10,11 @@ worlds effectively.
 
 Functions:
     - list_snapshots(ctx): Fetches and displays a list of all snapshots.
-    - create_snapshot(ctx, bot, SERVER_RUNNING, suppress_success_message):
+    - create_snapshot(ctx, bot, server_running, suppress_success_message):
       Creates a new snapshot of the world, handling user input and warnings.
     - delete_snapshot(ctx, bot, snapshot_name): Deletes a specified snapshot
       after user confirmation.
-    - restore_snapshot(ctx, bot, SERVER_RUNNING, snapshot_name): Restores the
+    - restore_snapshot(ctx, bot, server_running, snapshot_name): Restores the
       server from a specified snapshot, creating a new snapshot beforehand.
     - download_snapshot(ctx, snapshot_name): Downloads a specified snapshot
       to the Discord channel.
@@ -103,8 +103,8 @@ async def list_snapshots(ctx):
         await ctx.send(embed=normal_embed)
 
 
-async def create_snapshot(ctx, bot, SERVER_RUNNING, suppress_success_message):
-    if SERVER_RUNNING:
+async def create_snapshot(ctx, bot, server_running, suppress_success_message):
+    if server_running:
         embed = discord.Embed(description=':x: Cannot create a snapshot while the server is running.',
                               color=discord.Color.red())
         await ctx.send(embed=embed)
@@ -279,8 +279,8 @@ async def delete_snapshot(ctx, bot, snapshot_name):
         await delete_message.clear_reactions()
 
 
-async def restore_snapshot(ctx, bot, SERVER_RUNNING, snapshot_name):
-    if SERVER_RUNNING:
+async def restore_snapshot(ctx, bot, server_running, snapshot_name):
+    if server_running:
         embed = discord.Embed(description=':x: Cannot restore a snapshot while the server is running.',
                               color=discord.Color.red())
         await ctx.send(embed=embed)
@@ -327,7 +327,7 @@ async def restore_snapshot(ctx, bot, SERVER_RUNNING, snapshot_name):
         return
 
     if str(reaction.emoji) == '✅':
-        await create_snapshot(ctx, bot, SERVER_RUNNING, suppress_success_message=True)
+        await create_snapshot(ctx, bot, server_running, suppress_success_message=True)
         await confirm_message.delete()
 
         # Prepare embed to update during the process

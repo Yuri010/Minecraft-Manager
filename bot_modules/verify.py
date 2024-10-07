@@ -10,7 +10,7 @@ sending and receiving verification codes, and updating the database
 with the verified information.
 
 Functions:
-    - verify(ctx, bot, SERVER_RUNNING): Manages the verification process,
+    - verify(ctx, bot, server_running): Manages the verification process,
       including sending DMs, handling user input, and updating the database.
 
 Attributes:
@@ -59,8 +59,8 @@ RCON_PORT = int(config.get('PythonConfig', 'rcon_port'))
 RCON_PASSWORD = config.get('PythonConfig', 'rcon_password')
 
 
-async def verify(ctx, bot, SERVER_RUNNING):
-    if not SERVER_RUNNING:
+async def verify(ctx, bot, server_running):
+    if not server_running:
         embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
         await ctx.send(embed=embed)
         return

@@ -20,6 +20,7 @@ Notes:
     - Discord embed formatting is used to enhance the user experience when displaying information.
 """
 
+
 # Standard library imports
 import datetime
 

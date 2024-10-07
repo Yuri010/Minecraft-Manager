@@ -29,7 +29,7 @@ import requests
 
 async def get_public_ip():
     try:
-        response = requests.get('http://localhost:4040/api/tunnels')
+        response = requests.get('http://localhost:4040/api/tunnels', timeout=5)  # Timeout after 5 seconds
         response.raise_for_status()
 
         data = response.json()
@@ -38,8 +38,9 @@ async def get_public_ip():
             tunnel = tunnels[0]
             public_url = tunnel.get('public_url')
             return public_url
-        else:
-            return None
+
+        return None
+
     except Exception as e:
         print(f"Failed to retrieve public IP: {str(e)}")
         return None

@@ -1,4 +1,38 @@
-# version 1.3.0
+"""
+bot.py
+
+Version: 1.3.0
+
+This module contains the main logic for the Minecraft Discord bot. It sets
+up the bot, defines command handlers for various bot functionalities,
+and manages interactions with the Minecraft server. The bot supports commands
+such as starting/stopping the server, managing snapshots, and verifying users.
+
+Usage:
+    - Run this module to start the bot and listen for commands in Discord.
+    - The bot uses the command prefix `$` to interact with users.
+
+Key Commands:
+    - `start`: Starts the Minecraft server.
+    - `stop`: Stops the Minecraft server.
+    - `snapshots`: Manage world snapshots (list, create, delete, restore, download).
+    - `verify`: Links a Discord account to a Minecraft account.
+    - `ping`: Measures the bot's latency.
+
+Database:
+    - The bot uses an SQLite database to manage user verification and snapshot
+      information.
+
+Configuration:
+    - The bot's configuration is loaded from a `config.cfg` file, which should
+      contain the necessary settings (e.g., bot token, RCON credentials).
+
+Notes:
+    - Ensure that the Minecraft server is running before executing commands
+      that interact with it.
+    - The bot requires specific roles and permissions to execute certain commands.
+"""
+
 
 # Standard Library Imports
 import asyncio
@@ -44,7 +78,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='$', intents=intents)
 
-SERVER_RUNNING = False
+server_running = False
 
 
 def has_required_role(ctx):
@@ -66,7 +100,7 @@ def has_operator(discord_id):
         minecraft_username = result[1]
 
         # Check if ops.json exists and is valid
-        with open('../ops.json', 'r') as file:
+        with open('../ops.json', 'r', encoding='utf-8') as file:
             if os.stat('../ops.json').st_size == 0:
                 print("Error at 'has_operator': ops.json is empty.")
                 return False, 'Operator list is empty. Please contact an admin.'
@@ -105,9 +139,9 @@ async def start(ctx):
             await ctx.send(embed=embed)
             return
 
-    global SERVER_RUNNING
+    global server_running
 
-    if SERVER_RUNNING:
+    if server_running:
         embed = discord.Embed(description=':x: The Minecraft server is already running.', color=discord.Color.red())
         await ctx.send(embed=embed)
         return
@@ -118,7 +152,7 @@ async def start(ctx):
 
     try:
         subprocess.Popen('start cmd /c "start.bat -y"', shell=True)
-        SERVER_RUNNING = True
+        server_running = True
         await bot.change_presence(activity=discord.Game(name="a Minecraft Server"))
 
         await asyncio.sleep(45)
@@ -159,7 +193,7 @@ async def stop_command(ctx):
             await ctx.send(embed=embed)
             return
 
-    if not SERVER_RUNNING:
+    if not server_running:
         embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
         await ctx.send(embed=embed)
         return
@@ -320,12 +354,15 @@ async def console_error(ctx, error):
 @bot.command(name='status')
 async def status_command(ctx):
     embed_color = discord.Color.red()
-    public_ip = await bot_modules.get_public_ip() if SERVER_RUNNING else None
+    public_ip = await bot_modules.get_public_ip() if server_running else None
 
-    if SERVER_RUNNING:
+    if server_running:
         embed_color = discord.Color.green()
         try:
-            host, port = public_ip.replace('tcp://', '').split(':')[:2] if ':' in public_ip else (public_ip, '25565')
+            if isinstance(public_ip, str) and ':' in public_ip:
+                host, port = public_ip.replace('tcp://', '').split(':')[:2]
+            else:
+                host, port = public_ip, '25565'  # Assume a default port if public_ip is invalid
 
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.settimeout(3)
@@ -337,10 +374,10 @@ async def status_command(ctx):
             print('Failed to check server status: string conversion error.')
 
     embed = discord.Embed(title='Server Status', color=embed_color)
-    embed.add_field(name='Status', value='Running' if SERVER_RUNNING else 'Stopped', inline=False)
-    embed.add_field(name='IP', value=public_ip.replace('tcp://', '') if SERVER_RUNNING else 'N/A', inline=False)
+    embed.add_field(name='Status', value='Running' if server_running else 'Stopped', inline=False)
+    embed.add_field(name='IP', value=public_ip.replace('tcp://', '') if server_running else 'N/A', inline=False)
 
-    if SERVER_RUNNING:
+    if server_running:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.settimeout(3)
@@ -360,7 +397,7 @@ async def status_command(ctx):
 
 
 @bot.command(name='snapshots')
-async def snapshots_command(ctx, action=None, *args):
+async def snapshots_command(ctx, *args, action=None):
     discord_id = ctx.author.id
 
     if action == 'list' or action is None:  # When 'list' or no arguments are given, simply list the snapshots
@@ -379,7 +416,7 @@ async def snapshots_command(ctx, action=None, *args):
                 )
                 await ctx.send(embed=embed)
                 return
-        await bot_modules.create_snapshot(ctx, bot, SERVER_RUNNING, suppress_success_message=False)
+        await bot_modules.create_snapshot(ctx, bot, server_running, suppress_success_message=False)
         return
 
     # Check if user is owner before executing descructive commands
@@ -405,7 +442,7 @@ async def snapshots_command(ctx, action=None, *args):
     if action == 'delete':
         await bot_modules.delete_snapshot(ctx, bot, ' '.join(args))
     elif action == 'restore':
-        await bot_modules.restore_snapshot(ctx, bot, SERVER_RUNNING, ' '.join(args))
+        await bot_modules.restore_snapshot(ctx, bot, server_running, ' '.join(args))
     elif action == 'download':
         await bot_modules.download_snapshot(ctx, ' '.join(args))
     else:
@@ -426,7 +463,7 @@ async def info_command(ctx, action=None):
 
 @bot.command(name='verify')
 async def verify_command(ctx):
-    await bot_modules.verify(ctx, bot, SERVER_RUNNING)
+    await bot_modules.verify(ctx, bot, server_running)
 
 
 @bot.command(name='ping')
