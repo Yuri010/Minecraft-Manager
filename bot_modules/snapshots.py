@@ -118,39 +118,56 @@ async def create_snapshot(ctx, bot, server_running, suppress_success_message):
         await ctx.send(embed=embed)
         return
 
-    # Get snapshot name and description first
+    # Create a consolidated status embed to ask for the snapshot name
     embed = discord.Embed(
         description='📝 Please provide a name for this snapshot.',
         color=discord.Color.blue()
     )
-    name_q = await ctx.send(embed=embed)
+    waitembed = await ctx.send(embed=embed)
 
     def check_author(m):
         return m.author == ctx.author and m.channel == ctx.channel
 
     try:
+        # Wait for the user to respond with the snapshot name
         name_a = await bot.wait_for('message', check=check_author, timeout=120)
-        snapshot_name = name_a.content
+        snapshot_name = name_a.content.strip()  # Strip any extra spaces
+
+        # Delete the user's message to clean up chat
+        await name_a.delete()
+
     except asyncio.TimeoutError:
         snapshot_name = f"Snapshot {int(time.time())}"
 
-    embed = discord.Embed(
-        description='📝 Please provide a description for this snapshot.',
-        color=discord.Color.blue()
-    )
-    desc_q = await ctx.send(embed=embed)
+    # Check if the snapshot name already exists in the database
+    c.execute("SELECT * FROM snapshots WHERE fancy_name=?", (snapshot_name,))
+    if c.fetchone() is not None:
+        embed = discord.Embed(
+            description=f':x: A snapshot with the name "{snapshot_name}" already exists.\
+                Please choose a different name.',
+            color=discord.Color.red()
+        )
+        await waitembed.edit(embed=embed)
+        return
+
+    # Ask for the description and update the embed
+    embed.description = '📝 Please provide a description for this snapshot.'
+    await waitembed.edit(embed=embed)
 
     try:
+        # Wait for the user to respond with the snapshot description
         desc_a = await bot.wait_for('message', check=check_author, timeout=120)
-        snapshot_description = desc_a.content
+        snapshot_description = desc_a.content.strip()  # Strip any extra spaces
+
+        # Delete the user's message to clean up chat
+        await desc_a.delete()
+
     except asyncio.TimeoutError:
         snapshot_description = ""
 
-    # Create the base embed to update as we go
-    embed = discord.Embed(
-        description=f':rocket: Creating snapshot "{snapshot_name}"...\n',
-        color=discord.Color.blue()
-    )
+    # Update the embed to indicate snapshot creation is starting
+    embed.title = ':rocket: Creating snapshot...'
+    embed.description = f'Snapshot name: **{snapshot_name}**\n'
     waitembed = await ctx.send(embed=embed)
 
     # Prepare the temp folder for the snapshot
@@ -175,10 +192,9 @@ async def create_snapshot(ctx, bot, server_running, suppress_success_message):
 
         # Update embed with warnings about skipped folders
         if skipped_folders:
-            skipped_folders_text = "\n".join([f':warning: Skipping folder "{folder}" as it does not exist.'
+            skipped_folders_text = "\n".join([f':warning: Skipped folder "{folder}" as it does not exist.'
                                              for folder in skipped_folders])
-            embed.description += skipped_folders_text
-            await waitembed.edit(embed=embed)
+            embed.description += f'\n{skipped_folders_text}'
 
         # Create the snapshot archive
         snapshot_filename = f"snapshot_{int(time.time())}"
@@ -196,26 +212,20 @@ async def create_snapshot(ctx, bot, server_running, suppress_success_message):
         conn.commit()
 
         # Update the embed to show the snapshot was successfully created
+        embed.title = '✅ Snapshot Creation Finished'
         embed.description += f'\n:white_check_mark: Snapshot "{snapshot_name}" created successfully.'
         embed.color = discord.Color.green()
         await waitembed.edit(embed=embed)
 
     except Exception as e:
         # Catch all exceptions and report them in Discord
-        embed = discord.Embed(
-            description=f':x: Failed to create snapshot: {str(e)}',
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
+        embed.title = '❌ Snapshot Creation Finished with Errors'
+        embed.description = f':x: Failed to create snapshot: {str(e)}'
+        embed.color = discord.Color.red()
+        await waitembed.edit(embed=embed)
 
     finally:
         shutil.rmtree(temp_folder, ignore_errors=True)
-        await name_q.delete()
-        await desc_q.delete()
-        if 'name_a' in locals():
-            await name_a.delete()
-        if 'desc_a' in locals():
-            await desc_a.delete()
         if suppress_success_message:
             await waitembed.delete()
 
