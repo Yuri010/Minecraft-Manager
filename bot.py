@@ -400,7 +400,7 @@ async def snapshots_command(ctx, action=None, *args):
     elif action == 'restore':
         await bot_modules.restore_snapshot(ctx, bot, server_running, ' '.join(args))
     elif action == 'download':
-        await bot_modules.download_snapshot(ctx, bot, ' '.join(args))
+        await bot_modules.download_snapshot(ctx, ' '.join(args))
     else:
         embed = discord.Embed(
             description=f':x: Unknown action `{action}`.',
