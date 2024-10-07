@@ -359,25 +359,38 @@ async def status_command(ctx):
     if server_running:
         embed_color = discord.Color.green()
         try:
-            if isinstance(public_ip, str) and ':' in public_ip:
-                host, port = public_ip.replace('tcp://', '').split(':')[:2]
+            # Check if public_ip is a string and is in the expected format
+            if isinstance(public_ip, str):
+                if ':' in public_ip:
+                    host, port = public_ip.replace('tcp://', '').split(':')[:2]
+                else:
+                    host, port = public_ip, '25565'  # Use public_ip as host, default to port 25565
             else:
-                host, port = public_ip, '25565'  # Assume a default port if public_ip is invalid
+                # Handle the case where public_ip is None or not a string
+                host, port = None, None
+                print('Failed to retrieve public IP.')
 
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(3)
-                result = sock.connect_ex((host, int(port)))
+            # Only proceed if host and port are valid
+            if host and port:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(3)
+                    result = sock.connect_ex((host, int(port)))
 
-            if result != 0:
-                embed_color = discord.Color.red()
+                if result != 0:
+                    embed_color = discord.Color.red()
         except TypeError:
             print('Failed to check server status: string conversion error.')
 
     embed = discord.Embed(title='Server Status', color=embed_color)
     embed.add_field(name='Status', value='Running' if server_running else 'Stopped', inline=False)
-    embed.add_field(name='IP', value=public_ip.replace('tcp://', '') if server_running else 'N/A', inline=False)
 
-    if server_running:
+    # Update IP field based on validity
+    if isinstance(public_ip, str):
+        embed.add_field(name='IP', value=public_ip.replace('tcp://', ''), inline=False)
+    else:
+        embed.add_field(name='IP', value='N/A', inline=False)  # Public IP retrieval failed
+
+    if server_running and host and port:  # Only ping if valid host and port are available
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.settimeout(3)
