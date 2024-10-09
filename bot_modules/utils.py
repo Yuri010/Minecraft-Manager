@@ -53,5 +53,8 @@ async def ping(ctx):
 
     latency = (end_time - start_time) * 1000
 
-    embed = discord.Embed(description=f'Pong! Latency: {latency:.2f} ms', color=discord.Color.green())
+    embed = discord.Embed(
+        title=':ping_pong: Pong!',
+        description=f'Latency: {latency:.2f} ms',
+        color=discord.Color.green())
     await message.edit(content='', embed=embed)

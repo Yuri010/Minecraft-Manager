@@ -58,10 +58,6 @@ BOT_VERSION = "1.3.0"
 
 conn = sqlite3.connect('minecraft_manager.db')
 c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS verification (
-                discord_id INTEGER PRIMARY KEY,
-                minecraft_name TEXT
-            )''')
 
 config = configparser.ConfigParser()
 config.read('config.cfg')
@@ -133,7 +129,8 @@ async def start(ctx):
         is_op, error_message = has_operator(discord_id)
         if not is_op:
             embed = discord.Embed(
-                description=f':x: {error_message}',
+                title=':x: Missing Permissions',
+                description=f'{error_message}',
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -142,12 +139,17 @@ async def start(ctx):
     global server_running
 
     if server_running:
-        embed = discord.Embed(description=':x: The Minecraft server is already running.', color=discord.Color.red())
+        embed = discord.Embed(
+            title=':x: Server Running',
+            description='The Minecraft server is already running.',
+            color=discord.Color.red())
         await ctx.send(embed=embed)
         return
 
-    embed = discord.Embed(description=':rocket: Starting the Minecraft server, please wait...',
-                          color=discord.Color.blue())
+    embed = discord.Embed(
+        title=':rocket: Server Starting...',
+        description='Starting the Minecraft server, please wait...',
+        color=discord.Color.blue())
     message = await ctx.send(embed=embed)
 
     try:
@@ -160,19 +162,24 @@ async def start(ctx):
         if public_ip:
             public_ip = public_ip.replace('tcp://', '')
             embed = discord.Embed(
-                title=':white_check_mark: The Minecraft server has started successfully.',
-                description=f"The server is now accessible at: **{public_ip}**",
+                title=':white_check_mark: Server Started!',
+                description=f"The Minecraft server has started successfully.\
+                              The server is now accessible at: **{public_ip}**",
                 color=discord.Color.green()
             )
             await message.edit(embed=embed)
         else:
-            embed = discord.Embed(description=':x: Failed to retrieve the public IP of the server.',
-                                  color=discord.Color.red())
+            embed = discord.Embed(
+                title=':x: Server Error!',
+                description='Failed to retrieve the public IP of the server.',
+                color=discord.Color.red())
             await message.edit(embed=embed)
 
     except Exception as e:
-        embed = discord.Embed(description=f':x: An error occurred while starting the server: {str(e)}',
-                              color=discord.Color.red())
+        embed = discord.Embed(
+            title=':x: Server Error!',
+            description=f'An error occurred while starting the server: {str(e)}',
+            color=discord.Color.red())
         await message.edit(embed=embed)
 
 
@@ -187,6 +194,7 @@ async def stop_command(ctx):
         is_op, error_message = has_operator(discord_id)
         if not is_op:
             embed = discord.Embed(
+                title=':x: Missing Permissions',
                 description=f':x: {error_message}',
                 color=discord.Color.red()
             )
@@ -194,31 +202,41 @@ async def stop_command(ctx):
             return
 
     if not server_running:
-        embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
+        embed = discord.Embed(
+            title=':x: Server Offline!',
+            description='The Minecraft server is not running.',
+            color=discord.Color.red())
         await ctx.send(embed=embed)
         return
 
     try:
         with mcrcon.MCRcon(RCON_HOST, RCON_PASSWORD, port=RCON_PORT) as rcon:
             rcon.command('stop')
-            embed = discord.Embed(description=':stop_button: Sent the `stop` command to the Minecraft server.',
-                                  color=discord.Color.green())
+            embed = discord.Embed(
+                title="stop_button: Server Stopping...",
+                description=':stop_button: Sent the `stop` command to the Minecraft server.',
+                color=discord.Color.green())
             await ctx.send(embed=embed)
     except mcrcon.MCRconException:
-        embed = discord.Embed(description=':x: Failed to send the `stop` command to the Minecraft server.',
-                              color=discord.Color.red())
+        embed = discord.Embed(
+            title=':x: Server Error!',
+            description=':x: Failed to send the `stop` command to the Minecraft server.',
+            color=discord.Color.red())
         await ctx.send(embed=embed)
 
 
 @bot.command(name='shutdown')
 async def shutdown_bot(ctx):
     if ctx.author.id == BOT_OWNER_ID:
-        embed = discord.Embed(description=':stop_button: Shutting down the bot...', color=discord.Color.red())
+        embed = discord.Embed(
+            title=':stop_button: Bot Shutting Down',
+            description='Shutting down the bot...',
+            color=discord.Color.blue())
         await ctx.send(embed=embed)
         await bot.close()
     else:
         embed = discord.Embed(
-            title="❌ Missing Permissions",
+            title="x: Missing Permissions",
             description="Only the Minecraft Server Owner can issue this command.",
             color=discord.Color.red()
         )
@@ -238,9 +256,10 @@ async def update_bot(ctx):
 
         if latest_version < BOT_VERSION:
             embed = discord.Embed(
-                description=f'❌ Current version ({BOT_VERSION}) is newer than\
-                    the latest public build ({latest_version})!\n\
-                        Update aborted.',
+                title=':x: Your are in the future!',
+                description=f'Current version ({BOT_VERSION}) is newer than\
+                              the latest public build ({latest_version})!\n\
+                              Update aborted.',
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -248,8 +267,9 @@ async def update_bot(ctx):
 
         if latest_version > BOT_VERSION:
             embed = discord.Embed(
-                description=f'🔄 A new version ({latest_version} over {BOT_VERSION}) is available!\
-                    Do you want to update now?',
+                title=':arrows_counterclockwise: Update Available!',
+                description=f'A new version ({latest_version} over {BOT_VERSION}) is available!\
+                              Do you want to update now?',
                 color=discord.Color.blue()
             )
             message = await ctx.send(embed=embed)
@@ -264,7 +284,8 @@ async def update_bot(ctx):
 
                 if str(reaction.emoji) == '✅':
                     confirm_embed = discord.Embed(
-                        description='🔄 The bot will restart to perform an update. Please wait...',
+                        title=':arrows_counterclockwise: Bot Restarting...',
+                        description='The bot will restart to perform an update. Please wait...',
                         color=discord.Color.blue()
                     )
                     await message.edit(embed=confirm_embed)
@@ -274,14 +295,15 @@ async def update_bot(ctx):
                         await bot.close()
                     except Exception as e:
                         error_embed = discord.Embed(
-                            description=f':x: An error occurred while starting the update: {str(e)}',
+                            title=':x: Update Error!',
+                            description=f'An error occurred while starting the update: {str(e)}',
                             color=discord.Color.red()
                         )
                         await message.edit(embed=error_embed)
                 else:
                     cancel_embed = discord.Embed(
                         description=':x: Update canceled.',
-                        color=discord.Color.green()
+                        color=discord.Color.red()
                     )
                     await message.edit(embed=cancel_embed)
 
@@ -294,7 +316,8 @@ async def update_bot(ctx):
 
         else:
             up_to_date_embed = discord.Embed(
-                description=f'✅ The bot is already up to date (Version {BOT_VERSION}).',
+                title=':white_check_mark: Up-to-date!',
+                description=f'The bot is already up to date (Version {BOT_VERSION}).',
                 color=discord.Color.green()
             )
             await ctx.send(embed=up_to_date_embed)
@@ -312,31 +335,55 @@ async def update_bot(ctx):
 async def console_command(ctx, *, command):
     discord_id = ctx.author.id
 
-    if ctx.author.id == BOT_OWNER_ID:
-        pass
-    elif has_required_role(ctx.author):
-        pass
-    else:
+    # Permissions check
+    if ctx.author.id != BOT_OWNER_ID and not has_required_role(ctx):
         # Check if the user is a Minecraft operator
         is_op, error_message = has_operator(discord_id)
         if not is_op:
             embed = discord.Embed(
-                description=f':x: {error_message}',
+                title=':x: Missing Permissions',
+                description=f'{error_message}',
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
             return
 
+    # Check if the server is running
+    if not server_running:
+        embed = discord.Embed(
+            title=':x: Server Offline!',
+            description='The Minecraft server is not running.',
+            color=discord.Color.red())
+        await ctx.send(embed=embed)
+        return
+
     try:
-        with mcrcon.MCRcon(RCON_HOST, RCON_PASSWORD, port=RCON_PORT) as rcon:
+        # Set up an RCON connection with a timeout
+        with mcrcon.MCRcon(RCON_HOST, RCON_PASSWORD, port=RCON_PORT, timeout=5) as rcon:
             response = rcon.command(command)
-            embed = discord.Embed(title='Minecraft Console', description=f'Command: {command}',
-                                  color=discord.Color.green())
+            embed = discord.Embed(
+                title='Minecraft Console',
+                description=f'Command: {command}',
+                color=discord.Color.green())
             embed.add_field(name='Output', value=response)
             await ctx.send(embed=embed)
+
     except mcrcon.MCRconException as e:
-        embed = discord.Embed(title='Minecraft Console', description=f'Command: {command}', color=discord.Color.red())
+        # Handle RCON-specific errors
+        embed = discord.Embed(
+            title='Minecraft Console',
+            description=f'Command: {command}',
+            color=discord.Color.red())
         embed.add_field(name='Error', value=str(e))
+        await ctx.send(embed=embed)
+
+    except TimeoutError:
+        # Handle timeout errors
+        embed = discord.Embed(
+            title='❌ Timed Out',
+            description=':x: Failed to connect to the server within the timeout period.',
+            color=discord.Color.red()
+        )
         await ctx.send(embed=embed)
 
 
@@ -410,7 +457,7 @@ async def status_command(ctx):
 
 
 @bot.command(name='snapshots')
-async def snapshots_command(ctx, *args, action=None):
+async def snapshots_command(ctx, action=None, *args):
     discord_id = ctx.author.id
 
     if action == 'list' or action is None:  # When 'list' or no arguments are given, simply list the snapshots
@@ -424,18 +471,20 @@ async def snapshots_command(ctx, *args, action=None):
             is_op, error_message = has_operator(discord_id)
             if not is_op:
                 embed = discord.Embed(
-                    description=f':x: {error_message}',
+                    title=':x: Missing Permissions',
+                    description=f'{error_message}',
                     color=discord.Color.red()
                 )
                 await ctx.send(embed=embed)
                 return
-        await bot_modules.create_snapshot(ctx, bot, server_running, suppress_success_message=False)
+        await bot_modules.create_snapshot(ctx, bot, server_running, *args)
         return
 
     # Check if user is owner before executing descructive commands
     if action in ['delete', 'restore'] and discord_id != BOT_OWNER_ID:
         embed = discord.Embed(
-            description=':x: You do not have permission to use this command.',
+            title=':x: Missing Permissions',
+            description='You do not have permission to use this command.',
             color=discord.Color.red()
         )
         await ctx.send(embed=embed)
@@ -445,7 +494,8 @@ async def snapshots_command(ctx, *args, action=None):
     if action in ['delete', 'restore', 'download']:
         if not args:  # If no snapshot name is provided
             embed = discord.Embed(
-                description=f':x: You must provide a snapshot name for the `{action}` command.',
+                title=':x: Missing Arguments',
+                description=f'You must provide a snapshot name for the `{action}` command.',
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -460,7 +510,8 @@ async def snapshots_command(ctx, *args, action=None):
         await bot_modules.download_snapshot(ctx, ' '.join(args))
     else:
         embed = discord.Embed(
-            description=f':x: Unknown action `{action}`.',
+            title=':x: Unknown Argument',
+            description=f'Unknown action `{action}`.',
             color=discord.Color.red()
         )
         await ctx.send(embed=embed)

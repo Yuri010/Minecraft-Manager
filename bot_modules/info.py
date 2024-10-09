@@ -78,7 +78,7 @@ async def info_snapshots(ctx, bot):
 
     snapshot_commands = [
             '`list`: List all available snapshots',
-            '`create <name>`: Create a new snapshot of the world',
+            '`create <name> | <description>`: Create a new snapshot of the world',
             '`delete <name>`: Delete a snapshot',
             '`restore <name>`: Restore the server from a snapshot',
             '`download <name>`: Download a snapshot ("World download")'

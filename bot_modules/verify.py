@@ -61,7 +61,10 @@ RCON_PASSWORD = config.get('PythonConfig', 'rcon_password')
 
 async def verify(ctx, bot, server_running):
     if not server_running:
-        embed = discord.Embed(description=':x: The Minecraft server is not running.', color=discord.Color.red())
+        embed = discord.Embed(
+            title=':x: Server Offline!',
+            description=':x: The Minecraft server is not running.',
+            color=discord.Color.red())
         await ctx.send(embed=embed)
         return
 
@@ -71,7 +74,9 @@ async def verify(ctx, bot, server_running):
 
     if result:
         embed = discord.Embed(
-            description=':warning: You are already verified. React with ✅ to restart verification or ❌ to abort.',
+            title=':warning: Already Verified!',
+            description='You are already verified.\n\
+                         React with ✅ to restart verification or ❌ to abort.',
             color=discord.Color.orange()
         )
         message = await ctx.send(embed=embed)
@@ -165,7 +170,7 @@ async def verify(ctx, bot, server_running):
 
     embed = discord.Embed(
         description=':white_check_mark: A verification code has been sent to you in Minecraft.\
-            Please enter it here to complete the verification process.',
+                     Please enter it here to complete the verification process.',
         color=discord.Color.blue()
     )
     await dm_channel.send(embed=embed)
@@ -194,6 +199,7 @@ async def verify(ctx, bot, server_running):
     conn.commit()
 
     embed = discord.Embed(
+        title=':white_check_mark: Success!',
         description=':white_check_mark: Verification successful! Your Minecraft account has been linked.',
         color=discord.Color.green()
     )
