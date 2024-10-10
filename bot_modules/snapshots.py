@@ -142,6 +142,9 @@ async def create_snapshot(ctx, bot, *args):
         snapshot_name = args_str.strip()
         snapshot_description = None
 
+    def check_author(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+
     # Ask for a snapshot name in case that isn't provided (Prompted Creation)
     if not snapshot_name:
         embed = discord.Embed(
@@ -150,9 +153,6 @@ async def create_snapshot(ctx, bot, *args):
             color=discord.Color.blue()
         )
         question = await ctx.send(embed=embed)
-
-        def check_author(m):
-            return m.author == ctx.author and m.channel == ctx.channel
 
         try:
             answer = await bot.wait_for('message', check=check_author, timeout=120)
@@ -185,9 +185,6 @@ async def create_snapshot(ctx, bot, *args):
             color=discord.Color.blue()
         )
         question = await ctx.send(embed=embed)
-
-        def check_author(m):
-            return m.author == ctx.author and m.channel == ctx.channel
 
         try:
             answer = await bot.wait_for('message', check=check_author, timeout=120)

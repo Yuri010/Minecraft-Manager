@@ -204,19 +204,17 @@ async def shutdown_bot(ctx):
 @bot.command(name='update')
 async def update_bot(ctx):
     if ctx.author.id == BOT_OWNER_ID:
-
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                "https://api.github.com/repos/yuri010/minecraft-manager/releases/latest"
-            ) as response:
+                    "https://api.github.com/repos/yuri010/minecraft-manager/releases/latest") as response:
                 data = await response.json()
                 latest_version = data.get("tag_name", "Unknown")
 
         if latest_version < BOT_VERSION:
             embed = discord.Embed(
-                title=':x: Your are in the future!',
-                description=f'Current version ({BOT_VERSION}) is newer than\
-                              the latest public build ({latest_version})!\n\
+                title=':x: You are in the future!',
+                description=f'Current version ({BOT_VERSION})\
+                              is newer than the latest public build ({latest_version})!\n\
                               Update aborted.',
                 color=discord.Color.red()
             )
@@ -226,7 +224,7 @@ async def update_bot(ctx):
         if latest_version > BOT_VERSION:
             embed = discord.Embed(
                 title=':arrows_counterclockwise: Update Available!',
-                description=f'A new version ({latest_version} over {BOT_VERSION}) is available!\
+                description=f'A new version ({latest_version} over {BOT_VERSION}) is available!\n\
                               Do you want to update now?',
                 color=discord.Color.blue()
             )
@@ -248,8 +246,11 @@ async def update_bot(ctx):
                     )
                     await message.edit(embed=confirm_embed)
                     await message.clear_reactions()
+
                     try:
-                        subprocess.Popen('start cmd /c "updater.bat -autostart"', shell=True)
+                        # Start the updater process
+                        command = 'start cmd /c "updater.bat -autostart"'
+                        subprocess.Popen(command, shell=True)
                         await bot.close()
                     except Exception as e:
                         error_embed = discord.Embed(
@@ -258,6 +259,7 @@ async def update_bot(ctx):
                             color=discord.Color.red()
                         )
                         await message.edit(embed=error_embed)
+
                 else:
                     cancel_embed = discord.Embed(
                         description=':x: Update canceled.',

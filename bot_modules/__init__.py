@@ -27,13 +27,13 @@ Notes:
 # Importing modules
 from .info import info, info_snapshots
 from .snapshots import create_snapshot, delete_snapshot, download_snapshot, list_snapshots, restore_snapshot
-from .utils import check_server_running, get_public_ip, ping
+from .utils import check_server_running, get_public_ip, ping, has_required_role, has_operator
 from .verify import verify
 from .start import start_server
 
 # Suppress unused import warnings
 __all__ = ['info', 'info_snapshots',
            'create_snapshot', 'delete_snapshot', 'download_snapshot', 'list_snapshots', 'restore_snapshot',
-           'check_server_running', 'get_public_ip', 'ping',
+           'check_server_running', 'get_public_ip', 'ping', 'has_required_role', 'has_operator',
            'verify',
            'start_server']
