@@ -239,12 +239,12 @@ async def update_bot(ctx):
                 reaction, _ = await bot.wait_for('reaction_add', timeout=60.0, check=check)
 
                 if str(reaction.emoji) == '✅':
-                    confirm_embed = discord.Embed(
+                    embed = discord.Embed(
                         title=':arrows_counterclockwise: Bot Restarting...',
                         description='The bot will restart to perform an update. Please wait...',
                         color=discord.Color.blue()
                     )
-                    await message.edit(embed=confirm_embed)
+                    await message.edit(embed=embed)
                     await message.clear_reactions()
 
                     try:
@@ -253,34 +253,34 @@ async def update_bot(ctx):
                         subprocess.Popen(command, shell=True)
                         await bot.close()
                     except Exception as e:
-                        error_embed = discord.Embed(
+                        embed = discord.Embed(
                             title=':x: Update Error!',
                             description=f'An error occurred while starting the update: {str(e)}',
                             color=discord.Color.red()
                         )
-                        await message.edit(embed=error_embed)
+                        await message.edit(embed=embed)
 
                 else:
-                    cancel_embed = discord.Embed(
+                    embed = discord.Embed(
                         description=':x: Update canceled.',
                         color=discord.Color.red()
                     )
-                    await message.edit(embed=cancel_embed)
+                    await message.edit(embed=embed)
 
             except asyncio.TimeoutError:
-                timeout_embed = discord.Embed(
+                embed = discord.Embed(
                     description=':x: Update process timed out.',
                     color=discord.Color.red()
                 )
-                await message.edit(embed=timeout_embed)
+                await message.edit(embed=embed)
 
         else:
-            up_to_date_embed = discord.Embed(
+            embed = discord.Embed(
                 title=':white_check_mark: Up-to-date!',
                 description=f'The bot is already up to date (Version {BOT_VERSION}).',
                 color=discord.Color.green()
             )
-            await ctx.send(embed=up_to_date_embed)
+            await ctx.send(embed=embed)
 
     else:
         embed = discord.Embed(

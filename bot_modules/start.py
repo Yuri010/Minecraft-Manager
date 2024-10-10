@@ -27,7 +27,7 @@ from pathlib import Path
 import discord
 
 # First-party imports
-import bot_modules.utils as utils
+from bot_modules import utils
 
 
 logging.basicConfig(
@@ -129,12 +129,12 @@ async def start_server(ctx, bot):
                 )
                 await message.edit(embed=embed)
                 return bot.server_running
-            else:
-                logging.error("Failed to resolve public IP at 'get_public_ip'")
-                embed = discord.Embed(
-                    title=':x: Server Error!',
-                    description='Failed to retrieve the public IP of the server.',
-                    color=discord.Color.red())
+
+            logging.error("Failed to resolve public IP at 'get_public_ip'")
+            embed = discord.Embed(
+                title=':x: Server Error!',
+                description='Failed to retrieve the public IP of the server.',
+                color=discord.Color.red())
     else:
         logging.error("Failed to 'check_server_running'")
         embed = discord.Embed(
