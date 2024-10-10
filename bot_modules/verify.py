@@ -10,7 +10,7 @@ sending and receiving verification codes, and updating the database
 with the verified information.
 
 Functions:
-    - verify(ctx, bot, server_running): Manages the verification process,
+    - verify(ctx, bot): Manages the verification process,
       including sending DMs, handling user input, and updating the database.
 
 Attributes:
@@ -30,19 +30,19 @@ Notes:
 # Standard library imports
 import asyncio
 import configparser
-import os
 import random
 import sqlite3
+from pathlib import Path
 
 # Third-party imports
 import discord
 import mcrcon
 
 
-script_path = os.path.dirname(os.path.abspath(__file__))
-root_path = os.path.join(script_path, '..')
-db_path = os.path.join(root_path, 'minecraft_manager.db')
-config_path = os.path.join(root_path, 'config.cfg')
+script_path = Path(__file__).resolve().parent
+root_path = script_path.parent
+db_path = root_path / 'minecraft_manager.db'
+config_path = root_path / 'config.cfg'
 
 conn = sqlite3.connect(db_path)
 c = conn.cursor()
@@ -59,8 +59,8 @@ RCON_PORT = int(config.get('PythonConfig', 'rcon_port'))
 RCON_PASSWORD = config.get('PythonConfig', 'rcon_password')
 
 
-async def verify(ctx, bot, server_running):
-    if not server_running:
+async def verify(ctx, bot):
+    if not bot.server_running:
         embed = discord.Embed(
             title=':x: Server Offline!',
             description=':x: The Minecraft server is not running.',

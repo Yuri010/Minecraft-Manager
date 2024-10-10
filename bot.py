@@ -36,9 +36,8 @@ Notes:
 
 # Standard Library Imports
 import asyncio
+import logging
 import configparser
-import json
-import os
 import socket
 import sqlite3
 import subprocess
@@ -54,6 +53,12 @@ from discord.ext import commands
 import bot_modules
 
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] [%(levelname)-8s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
 BOT_VERSION = "1.3.0"
 
 conn = sqlite3.connect('minecraft_manager.db')
@@ -65,6 +70,7 @@ config.read('config.cfg')
 TOKEN = config.get('PythonConfig', 'TOKEN')
 REQUIRED_ROLE = config.get('PythonConfig', 'required_role')
 BOT_OWNER_ID = int(config.get('PythonConfig', 'bot_owner_id'))
+PORT = config.get("PythonConfig", "port")
 RCON_HOST = config.get('PythonConfig', 'rcon_host')
 RCON_PORT = int(config.get('PythonConfig', 'rcon_port'))
 RCON_PASSWORD = config.get('PythonConfig', 'rcon_password')
@@ -74,46 +80,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='$', intents=intents)
 
-server_running = False
-
-
-def has_required_role(ctx):
-    role = discord.utils.get(ctx.guild.roles, name=REQUIRED_ROLE)
-    return role in ctx.author.roles
-
-
-def has_operator(discord_id):
-    try:
-        # Check the database if the user has verified their Minecraft account
-        c.execute("SELECT * FROM verification WHERE discord_id=?", (discord_id,))
-        result = c.fetchone()
-
-        if result is None:
-            # User hasn't verified their Minecraft account
-            print(f"Error at 'has_operator': User {discord_id} not verified.")
-            return False, 'You need to verify your Minecraft account first using the `$verify` command.'
-
-        minecraft_username = result[1]
-
-        # Check if ops.json exists and is valid
-        with open('../ops.json', 'r', encoding='utf-8') as file:
-            if os.stat('../ops.json').st_size == 0:
-                print("Error at 'has_operator': ops.json is empty.")
-                return False, 'Operator list is empty. Please contact an admin.'
-
-            ops_data = json.load(file)
-
-        # Check if the Minecraft username is an operator
-        for op in ops_data:
-            if op['name'] == minecraft_username:
-                return True, None  # User is an operator, no error message needed
-
-        # If user is verified but not an operator
-        return False, 'You do not have operator permissions on the Minecraft server.'
-
-    except (FileNotFoundError, json.JSONDecodeError):
-        print("Error at 'has_operator': Failed loading ops.json.")
-        return False, 'Failed to load operator list. Please contact an admin.'
+bot.server_running = False
 
 
 @bot.command(name='start')
@@ -122,11 +89,10 @@ async def start(ctx):
 
     if ctx.author.id == BOT_OWNER_ID:
         pass
-    elif has_required_role(ctx):
+    elif bot_modules.has_required_role(ctx):
         pass
     else:
-        # Check if the user is a Minecraft operator
-        is_op, error_message = has_operator(discord_id)
+        is_op, error_message = bot_modules.has_operator(discord_id)
         if not is_op:
             embed = discord.Embed(
                 title=':x: Missing Permissions',
@@ -136,51 +102,7 @@ async def start(ctx):
             await ctx.send(embed=embed)
             return
 
-    global server_running
-
-    if server_running:
-        embed = discord.Embed(
-            title=':x: Server Running',
-            description='The Minecraft server is already running.',
-            color=discord.Color.red())
-        await ctx.send(embed=embed)
-        return
-
-    embed = discord.Embed(
-        title=':rocket: Server Starting...',
-        description='Starting the Minecraft server, please wait...',
-        color=discord.Color.blue())
-    message = await ctx.send(embed=embed)
-
-    try:
-        subprocess.Popen('start cmd /c "start.bat -y"', shell=True)
-        server_running = True
-        await bot.change_presence(activity=discord.Game(name="a Minecraft Server"))
-
-        await asyncio.sleep(45)
-        public_ip = await bot_modules.get_public_ip()
-        if public_ip:
-            public_ip = public_ip.replace('tcp://', '')
-            embed = discord.Embed(
-                title=':white_check_mark: Server Started!',
-                description=f"The Minecraft server has started successfully.\
-                              The server is now accessible at: **{public_ip}**",
-                color=discord.Color.green()
-            )
-            await message.edit(embed=embed)
-        else:
-            embed = discord.Embed(
-                title=':x: Server Error!',
-                description='Failed to retrieve the public IP of the server.',
-                color=discord.Color.red())
-            await message.edit(embed=embed)
-
-    except Exception as e:
-        embed = discord.Embed(
-            title=':x: Server Error!',
-            description=f'An error occurred while starting the server: {str(e)}',
-            color=discord.Color.red())
-        await message.edit(embed=embed)
+    bot.server_running = await bot_modules.start_server(ctx, bot)
 
 
 @bot.command(name='stop')
@@ -191,7 +113,7 @@ async def stop_command(ctx):
         pass
     else:
         # Check if the user is a Minecraft operator
-        is_op, error_message = has_operator(discord_id)
+        is_op, error_message = bot_modules.has_operator(discord_id)
         if not is_op:
             embed = discord.Embed(
                 title=':x: Missing Permissions',
@@ -201,7 +123,7 @@ async def stop_command(ctx):
             await ctx.send(embed=embed)
             return
 
-    if not server_running:
+    if not bot.server_running:
         embed = discord.Embed(
             title=':x: Server Offline!',
             description='The Minecraft server is not running.',
@@ -213,16 +135,52 @@ async def stop_command(ctx):
         with mcrcon.MCRcon(RCON_HOST, RCON_PASSWORD, port=RCON_PORT) as rcon:
             rcon.command('stop')
             embed = discord.Embed(
-                title="stop_button: Server Stopping...",
-                description=':stop_button: Sent the `stop` command to the Minecraft server.',
-                color=discord.Color.green())
-            await ctx.send(embed=embed)
+                title=":hourglass: Server Stopping...",
+                description='Sent the `stop` command to the Minecraft server.',
+                color=discord.Color.blue())
+            stop = await ctx.send(embed=embed)
+
     except mcrcon.MCRconException:
         embed = discord.Embed(
             title=':x: Server Error!',
-            description=':x: Failed to send the `stop` command to the Minecraft server.',
+            description='Failed to send the `stop` command to the Minecraft server.',
             color=discord.Color.red())
         await ctx.send(embed=embed)
+        return
+
+    # Checking if server actually went offline
+    for attempt in range(5):
+        logging.debug("Checking server state... Attempt %d/5", attempt + 1)
+        bot.server_running = bot_modules.check_server_running(host='localhost', port=PORT)
+
+        if not bot.server_running:
+            logging.info("Server stopped successfully")
+            embed = discord.Embed(
+                title=":stop_button: Server Stopped",
+                description='Server stopped successfully',
+                color=discord.Color.green())
+            await stop.edit(embed=embed)
+
+            try:
+                # Terminate Ngrok process
+                result = subprocess.call('taskkill /im ngrok.exe /f', shell=True)
+                if result == 0:
+                    logging.info("Ngrok terminated successfully.")
+                else:
+                    logging.error("Failed to terminate Ngrok process. Error code: %d", result)
+            except Exception as e:
+                logging.error("Error terminating Ngrok process: %s", e)
+            break
+
+        await asyncio.sleep(2)
+
+    if bot.server_running:
+        logging.error("Failed to stop the Minecraft server")
+        embed = discord.Embed(
+            title=':x: Server Error!',
+            description='Server failed to stop',
+            color=discord.Color.red())
+        await stop.edit(embed=embed)
 
 
 @bot.command(name='shutdown')
@@ -336,9 +294,9 @@ async def console_command(ctx, *, command):
     discord_id = ctx.author.id
 
     # Permissions check
-    if ctx.author.id != BOT_OWNER_ID and not has_required_role(ctx):
+    if ctx.author.id != BOT_OWNER_ID and not bot_modules.has_required_role(ctx):
         # Check if the user is a Minecraft operator
-        is_op, error_message = has_operator(discord_id)
+        is_op, error_message = bot_modules.has_operator(discord_id)
         if not is_op:
             embed = discord.Embed(
                 title=':x: Missing Permissions',
@@ -349,7 +307,7 @@ async def console_command(ctx, *, command):
             return
 
     # Check if the server is running
-    if not server_running:
+    if not bot.server_running:
         embed = discord.Embed(
             title=':x: Server Offline!',
             description='The Minecraft server is not running.',
@@ -401,9 +359,9 @@ async def console_error(ctx, error):
 @bot.command(name='status')
 async def status_command(ctx):
     embed_color = discord.Color.red()
-    public_ip = await bot_modules.get_public_ip() if server_running else None
+    public_ip = await bot_modules.get_public_ip() if bot.server_running else None
 
-    if server_running:
+    if bot.server_running:
         embed_color = discord.Color.green()
         try:
             # Check if public_ip is a string and is in the expected format
@@ -415,7 +373,7 @@ async def status_command(ctx):
             else:
                 # Handle the case where public_ip is None or not a string
                 host, port = None, None
-                print('Failed to retrieve public IP.')
+                logging.error("Failed to retrieve public IP at 'status' command.")
 
             # Only proceed if host and port are valid
             if host and port:
@@ -426,10 +384,10 @@ async def status_command(ctx):
                 if result != 0:
                     embed_color = discord.Color.red()
         except TypeError:
-            print('Failed to check server status: string conversion error.')
+            logging.error("Failed to check server status: string conversion error.")
 
     embed = discord.Embed(title='Server Status', color=embed_color)
-    embed.add_field(name='Status', value='Running' if server_running else 'Stopped', inline=False)
+    embed.add_field(name='Status', value='Running' if bot.server_running else 'Stopped', inline=False)
 
     # Update IP field based on validity
     if isinstance(public_ip, str):
@@ -437,7 +395,7 @@ async def status_command(ctx):
     else:
         embed.add_field(name='IP', value='N/A', inline=False)  # Public IP retrieval failed
 
-    if server_running and host and port:  # Only ping if valid host and port are available
+    if bot.server_running and host and port:  # Only ping if valid host and port are available
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.settimeout(3)
@@ -468,7 +426,7 @@ async def snapshots_command(ctx, action=None, *args):
         # Check if the user is the bot owner first
         if discord_id != BOT_OWNER_ID:
             # If not the owner, check if they are an operator
-            is_op, error_message = has_operator(discord_id)
+            is_op, error_message = bot_modules.has_operator(discord_id)
             if not is_op:
                 embed = discord.Embed(
                     title=':x: Missing Permissions',
@@ -477,7 +435,7 @@ async def snapshots_command(ctx, action=None, *args):
                 )
                 await ctx.send(embed=embed)
                 return
-        await bot_modules.create_snapshot(ctx, bot, server_running, *args)
+        await bot_modules.create_snapshot(ctx, bot, *args)
         return
 
     # Check if user is owner before executing descructive commands
@@ -505,7 +463,7 @@ async def snapshots_command(ctx, action=None, *args):
     if action == 'delete':
         await bot_modules.delete_snapshot(ctx, bot, ' '.join(args))
     elif action == 'restore':
-        await bot_modules.restore_snapshot(ctx, bot, server_running, ' '.join(args))
+        await bot_modules.restore_snapshot(ctx, bot, ' '.join(args))
     elif action == 'download':
         await bot_modules.download_snapshot(ctx, ' '.join(args))
     else:
@@ -527,7 +485,7 @@ async def info_command(ctx, action=None):
 
 @bot.command(name='verify')
 async def verify_command(ctx):
-    await bot_modules.verify(ctx, bot, server_running)
+    await bot_modules.verify(ctx, bot)
 
 
 @bot.command(name='ping')
@@ -537,7 +495,7 @@ async def ping_command(ctx):
 
 @bot.event
 async def on_ready():
-    print(f'Bot is ready. Logged in as {bot.user.name}')
+    logging.info("Bot is ready. Logged in as %s", bot.user.name)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,
                                                         name="over a Minecraft Server"))
 

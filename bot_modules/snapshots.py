@@ -11,11 +11,11 @@ worlds effectively.
 Functions:
     - get_snapshot(ctx, snapshot_name): (Internal) Fetches a snapshot from the database.
     - list_snapshots(ctx): Fetches and displays a list of all snapshots.
-    - create_snapshot(ctx, bot, server_running, suppress_success_message):
+    - create_snapshot(ctx, bot, suppress_success_message):
       Creates a new snapshot of the world, handling user input and warnings.
     - delete_snapshot(ctx, bot, snapshot_name): Deletes a specified snapshot
       after user confirmation.
-    - restore_snapshot(ctx, bot, server_running, snapshot_name): Restores the
+    - restore_snapshot(ctx, bot, snapshot_name): Restores the
       server from a specified snapshot, creating a new snapshot beforehand.
     - download_snapshot(ctx, snapshot_name): Downloads a specified snapshot
       to the Discord channel.
@@ -44,20 +44,13 @@ from pathlib import Path
 import discord
 
 
-# Get the absolute path of the script
 script_path = Path(__file__).resolve().parent
-
-# Define the root directory (parent of the "scripts" folder)
 root_path = script_path.parent
 
-# Path to the SQLite database
 db_path = root_path / 'minecraft_manager.db'
-
-# Database connection
 conn = sqlite3.connect(db_path)
 c = conn.cursor()
 
-# Create the snapshots table if it doesn't exist
 c.execute('''CREATE TABLE IF NOT EXISTS snapshots (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 filename TEXT,
@@ -120,8 +113,8 @@ async def list_snapshots(ctx):
         await ctx.send(embed=normal_embed)
 
 
-async def create_snapshot(ctx, bot, server_running, *args):
-    if server_running:
+async def create_snapshot(ctx, bot, *args):
+    if bot.server_running:
         embed = discord.Embed(
             title=':x: Server Running!',
             description='Cannot create a snapshot while the server is running.',
@@ -261,7 +254,7 @@ async def create_snapshot(ctx, bot, server_running, *args):
 
     except Exception as e:
         embed.title = ":x: Snapshot Failed!"
-        embed.description = f':x: Failed to create snapshot: {str(e)}'
+        embed.description = f'Failed to create snapshot: {str(e)}'
         embed.color = discord.Color.red()
         await waitembed.edit(embed=embed)
 
@@ -325,8 +318,8 @@ async def delete_snapshot(ctx, bot, snapshot_name):
         await delete_message.clear_reactions()
 
 
-async def restore_snapshot(ctx, bot, server_running, snapshot_name):
-    if server_running:
+async def restore_snapshot(ctx, bot, snapshot_name):
+    if bot.server_running:
         embed = discord.Embed(
             title=':x: Server Running!',
             description='Cannot restore a snapshot while the server is running.',
@@ -369,7 +362,7 @@ async def restore_snapshot(ctx, bot, server_running, snapshot_name):
         return
 
     if str(reaction.emoji) == '✅':
-        await create_snapshot(ctx, bot, server_running)
+        await create_snapshot(ctx, bot)
         await confirm_message.delete()
 
         # Prepare embed to update during the process
