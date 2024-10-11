@@ -82,15 +82,15 @@ async def start_server(ctx, bot):
     logging.info("Starting server with command: %s", COMMAND)
 
     # Start the server process
-    with subprocess.Popen(
+    subprocess.Popen(
         COMMAND,
         shell=True,
         stdout=subprocess.DEVNULL,  # Suppress standard logs
         stderr=subprocess.DEVNULL,   # Suppress error logs
         cwd=root_path.parent  # Make sure it uses the actual server directory rather than scripts
-    ):
-        # Wait for the server to be ready
-        await asyncio.sleep(10)
+    )
+    # Wait for the server to be ready
+    await asyncio.sleep(10)
 
     # Check if the server is reachable
     for attempt in range(5):
@@ -108,33 +108,33 @@ async def start_server(ctx, bot):
         logging.info("Starting Ngrok with command: %s", NGROK_COMMAND)
 
         # Start ngrok
-        with subprocess.Popen(
+        subprocess.Popen(
             NGROK_COMMAND,
             shell=True,
             stdout=subprocess.DEVNULL,  # Suppress standard logs
             stderr=subprocess.DEVNULL,   # Suppress error logs
             cwd=root_path.parent
-        ):
-            # Fetch the public URL from ngrok
-            await asyncio.sleep(15)  # Wait a bit for the server to actually come available
-            public_ip = await utils.get_public_ip()
-            if public_ip:
-                logging.info("Server started successfully, available at: %s", public_ip)
-                public_ip = public_ip.replace('tcp://', '')
-                embed = discord.Embed(
-                    title=':white_check_mark: Server Started!',
-                    description=f"The Minecraft server has started successfully.\n\
-                                  The server is now accessible at: **{public_ip}**",
-                    color=discord.Color.green()
-                )
-                await message.edit(embed=embed)
-                return bot.server_running
-
-            logging.error("Failed to resolve public IP at 'get_public_ip'")
+        )
+        # Fetch the public URL from ngrok
+        await asyncio.sleep(15)  # Wait a bit for the server to actually come available
+        public_ip = await utils.get_public_ip()
+        if public_ip:
+            logging.info("Server started successfully, available at: %s", public_ip)
+            public_ip = public_ip.replace('tcp://', '')
             embed = discord.Embed(
-                title=':x: Server Error!',
-                description='Failed to retrieve the public IP of the server.',
-                color=discord.Color.red())
+                title=':white_check_mark: Server Started!',
+                description=f"The Minecraft server has started successfully.\n\
+                                The server is now accessible at: **{public_ip}**",
+                color=discord.Color.green()
+            )
+            await message.edit(embed=embed)
+            return bot.server_running
+
+        logging.error("Failed to resolve public IP at 'get_public_ip'")
+        embed = discord.Embed(
+            title=':x: Server Error!',
+            description='Failed to retrieve the public IP of the server.',
+            color=discord.Color.red())
     else:
         logging.error("Failed to 'check_server_running'")
         embed = discord.Embed(

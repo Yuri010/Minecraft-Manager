@@ -250,8 +250,8 @@ async def update_bot(ctx):
                     try:
                         # Start the updater process
                         command = 'start cmd /c "updater.bat -autostart"'
-                        with subprocess.Popen(command, shell=True):
-                            await bot.close()
+                        subprocess.Popen(command, shell=True)
+                        await bot.close()
                     except Exception as e:
                         embed = discord.Embed(
                             title=':x: Update Error!',
