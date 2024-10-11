@@ -1,4 +1,4 @@
-:: version 1.2.2
+:: version 1.3.0
 @echo off
 title Minecraft-Manager Updater
 cd %~dp0
@@ -35,7 +35,6 @@ goto :main
 
 :main
 del releases.tmp
-@echo on
 if NOT exist "start.bat" (
     cls
     echo Minecraft-Manager is not installed! It will be installed automatically.
@@ -50,7 +49,7 @@ if "%lver%" LSS %gver% (
     if /I "%errorlevel%" EQU "1" goto :update
 )
 if /I "%lver%" GTR %gver% (
-    ::cls
+    cls
     echo Hey! Github isn't Up-to-Date!
     echo.
     echo Press any key to exit...
@@ -74,54 +73,60 @@ echo Attempting to obtain the latest Minecraft-Manager...
 echo.
 echo Log: ====================================================================================================
 echo.
-curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/start.bat -o start-new.bat
-curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.bat -o bot-new.bat
-curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/bot.py -o bot-new.py
-curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/updater.bat -o updater-new.bat
-if "%newinstall%" == "true" (
-    cd ..
-    curl -0 -L https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/eula.vbs -o eula.vbs
-    cd scripts
-)
+curl -L -o minecraft-manager.zip https://github.com/Yuri010/minecraft-manager/archive/refs/heads/main.zip
+echo Downloaded latest version.
+
+echo Extracting files...
+tar -xf minecraft-manager.zip --strip-components=1 -C extracted
+echo Extraction complete.
+
+echo Copying necessary files...
+copy /Y extracted\*.bat .
+copy /Y extracted\*.py .
+copy /Y extracted\config.cfg .
+
 if NOT exist config.cfg (
     cls
     echo NOTE: EXISTING CONFIG COULD NOT BE FOUND, DOWNLOADING TEMPLATE...
-curl -0 -L --progress-bar https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/config.cfg -o config-new.cfg
+    curl -0 -L --progress-bar https://raw.githubusercontent.com/Yuri010/minecraft-manager/main/config.cfg -o config-new.cfg
 )
+
 echo.
 echo =========================================================================================================
 echo Updating to version %gver% over %lver%...
-move start-new.bat start.bat
-move bot-new.bat bot.bat
-move bot-new.py bot.py
-if NOT exist config.cfg move config-new.cfg config.cfg
 timeout 1 > nul
-if "%newinstall%" == "true" (
-if "%jar%" == "true" (
-echo It looks like this is a new installation
-echo The script will automatically attempt to edit the EULA file to agree to the Minecraft Server EULA
-echo PLEASE DO NOT TOUCH YOUR COMPUTER DURING THIS Part
-echo.
-pause
-echo DO NOT TOUCH YOUR PC
-timeout /t 1 /nobreak > nul
-cd ..
-eula.vbs
-cd scripts
-timeout /t 1 /nobreak > nul
-)
-move updater-new.bat updater.bat"
-start "" "cmd /c "%~dp0scripts/updater.bat" -configure
-cd ..
-start "" "cmd /c del /f updater.bat"
-) else goto :updateend
 
-:updateend
-if "%autostart%" == "on" (
-    start "" "cmd /c timeout /t 3 & start bot.bat"
-    start "" "cmd /c move updater-new.bat updater.bat"
+if "%newinstall%" == "true" (
+    if "%jar%" == "true" (
+        echo It looks like this is a new installation
+        echo The script will automatically attempt to edit the EULA file to agree to the Minecraft Server EULA
+        echo PLEASE DO NOT TOUCH YOUR COMPUTER DURING THIS Part
+        echo.
+        pause
+        echo DO NOT TOUCH YOUR PC
+        timeout /t 1 /nobreak > nul
+        eula.vbs
+        timeout /t 1 /nobreak > nul
+    )
+
+    echo Moving updater to scripts directory for configuration...
+    move updater.bat updater.bat.bak
+    move updater-new.bat updater.bat
+    start "" "cmd /c "%~dp0scripts/updater.bat" -configure"
+    cd ..
+    timeout /t 1 > nul
+    start "" "cmd /c del /f updater.bat"  // Deleting the old updater
 )
-start "" "cmd /c move updater-new.bat updater.bat"
+
+echo Clean up...
+rd /s /q extracted
+del minecraft-manager.zip
+
+:start
+if "%autostart%" == "on" (
+    echo Autostarting the bot after update...
+    start "" "cmd /c timeout /t 3 & start bot.bat"
+)
 exit
 
 :: ===================================INSTALL===================================
