@@ -20,6 +20,7 @@ Notes:
 
 
 # Standard library imports
+import asyncio
 import logging
 import time
 import json
@@ -127,3 +128,17 @@ def has_operator(discord_id):
     except (FileNotFoundError, json.JSONDecodeError):
         logging.error("'has_operator': Failed loading %s.", ops_file)
         return False, 'Failed to load operator list. Please contact an admin.'
+
+
+async def get_user_reaction(bot, message, user, valid_reactions, timeout=120):
+    for reaction in valid_reactions:
+        await message.add_reaction(reaction)
+
+    def check(reaction, user_check):
+        return user_check == user and str(reaction.emoji) in valid_reactions and reaction.message.id == message.id
+
+    try:
+        reaction, user_reaction = await bot.wait_for('reaction_add', timeout=timeout, check=check)
+        return reaction, user_reaction
+    except asyncio.TimeoutError:
+        return None, None

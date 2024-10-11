@@ -43,6 +43,9 @@ from pathlib import Path
 # Third-party imports
 import discord
 
+# First-party imports
+from bot_modules import utils
+
 
 script_path = Path(__file__).resolve().parent
 root_path = script_path.parent
@@ -278,15 +281,10 @@ async def delete_snapshot(ctx, bot, snapshot_name):
 
     message = await ctx.send(embed=embed)
 
-    def check_delete(reaction, user):
-        return user == ctx.author and reaction.message.id == message.id and str(reaction.emoji) in ['✅', '❌']
+    # Use the utility function to get user reaction
+    reaction, _ = await utils.get_user_reaction(bot, message, ctx.author, ['✅', '❌'])
 
-    await message.add_reaction('✅')
-    await message.add_reaction('❌')
-
-    try:
-        reaction, _ = await bot.wait_for('reaction_add', timeout=120, check=check_delete)
-    except asyncio.TimeoutError:
+    if reaction is None:
         embed = discord.Embed(
             description=f':x: Snapshot deletion process timed out for "{fancy_name}".',
             color=discord.Color.red()
@@ -343,15 +341,10 @@ async def restore_snapshot(ctx, bot, snapshot_name):
     )
     message = await ctx.send(embed=embed)
 
-    def check_reaction(reaction, user):
-        return user == ctx.author and reaction.message.id == message.id and str(reaction.emoji) in ['✅', '❌']
+    # Use the utility function to handle reactions
+    reaction, _ = await utils.get_user_reaction(bot, message, ctx.author, ['✅', '❌'])
 
-    await message.add_reaction('✅')
-    await message.add_reaction('❌')
-
-    try:
-        reaction, _ = await bot.wait_for('reaction_add', timeout=120, check=check_reaction)
-    except asyncio.TimeoutError:
+    if reaction is None:
         embed = discord.Embed(
             description=f':x: Snapshot restoration process timed out for "{fancy_name}".',
             color=discord.Color.red()
@@ -384,9 +377,9 @@ async def restore_snapshot(ctx, bot, snapshot_name):
             if not main_world_folder.exists():
                 embed = discord.Embed(
                     title=':x: Snapshot Restoring Failed!',
-                    description='The main world folder is missing from the snapshot.\
-                                 Aborting restore.',
-                                color=discord.Color.red())
+                    description='The main world folder is missing from the snapshot. Aborting restore.',
+                    color=discord.Color.red()
+                )
                 await message.edit(embed=embed)
                 shutil.rmtree(temp_folder, ignore_errors=True)
                 return

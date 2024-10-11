@@ -38,6 +38,9 @@ from pathlib import Path
 import discord
 import mcrcon
 
+# First-party imports
+from bot_modules import utils
+
 
 script_path = Path(__file__).resolve().parent
 root_path = script_path.parent
@@ -75,21 +78,15 @@ async def verify(ctx, bot):
     if result:
         embed = discord.Embed(
             title=':warning: Already Verified!',
-            description='You are already verified.\n\
-                         React with ✅ to restart verification or ❌ to abort.',
+            description='You are already verified.\nReact with ✅ to restart verification or ❌ to abort.',
             color=discord.Color.orange()
         )
         message = await ctx.send(embed=embed)
 
-        await message.add_reaction('✅')
-        await message.add_reaction('❌')
+        # Use the utility function to get user reaction
+        reaction, _ = await utils.get_user_reaction(ctx, bot, message, ctx.author, ['✅', '❌'])
 
-        def check(reaction, user):
-            return user == ctx.author and reaction.message.id == message.id and str(reaction.emoji) in ['✅', '❌']
-
-        try:
-            reaction, _ = await bot.wait_for('reaction_add', timeout=120, check=check)
-        except asyncio.TimeoutError:
+        if reaction is None:
             embed = discord.Embed(
                 description=':x: Verification process timed out.',
                 color=discord.Color.red()
