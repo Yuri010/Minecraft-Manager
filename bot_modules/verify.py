@@ -84,7 +84,7 @@ async def verify(ctx, bot):
         message = await ctx.send(embed=embed)
 
         # Use the utility function to get user reaction
-        reaction, _ = await utils.get_user_reaction(ctx, bot, message, ctx.author, ['✅', '❌'])
+        reaction, _ = await utils.get_user_reaction(bot, message, ctx.author, ['✅', '❌'])
 
         if reaction is None:
             embed = discord.Embed(
@@ -197,7 +197,7 @@ async def verify(ctx, bot):
 
     embed = discord.Embed(
         title=':white_check_mark: Success!',
-        description=':white_check_mark: Verification successful! Your Minecraft account has been linked.',
+        description='Verification successful! Your Minecraft account has been linked.',
         color=discord.Color.green()
     )
     await dm_channel.send(embed=embed)
