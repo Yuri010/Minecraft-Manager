@@ -447,13 +447,12 @@ async def download_snapshot(ctx, snapshot_name):
         await ctx.send(embed=embed)
         return
 
-    message = await ctx.send(
-        embed=discord.Embed(
-            title=':hourglass: Uploading Snapshot...',
-            description=f'Starting upload for snapshot "{snapshot_name}", please wait...',
-            color=discord.Color.blue()
+    embed = discord.Embed(
+        title=':hourglass: Uploading Snapshot...',
+        description=f'Starting upload for snapshot "{snapshot_name}", please wait...',
+        color=discord.Color.blue()
         )
-    )
+    message = await ctx.send(embed=embed)
 
     try:
         file = discord.File(str(snapshot_path), filename=snapshot_path.name)
@@ -463,8 +462,8 @@ async def download_snapshot(ctx, snapshot_name):
             description=f'Snapshot "{snapshot_name}" has been successfully uploaded.',
             color=discord.Color.green()
         )
-        await message.delete()
         await ctx.send(embed=embed, file=file)
+        await message.delete()
 
     except Exception as e:
         embed = discord.Embed(
