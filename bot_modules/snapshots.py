@@ -250,9 +250,11 @@ async def create_snapshot(ctx, bot, *args):
         await waitembed.edit(embed=embed)  # Send success message
 
     except Exception as e:
-        embed.title = ":x: Snapshot Failed!"
-        embed.description = f'Failed to create snapshot: {str(e)}'
-        embed.color = discord.Color.red()
+        embed = discord.Embed(
+            title=":x: Snapshot Failed!",
+            description=f'Failed to create snapshot: {str(e)}',
+            color=discord.Color.red()
+        )
         await waitembed.edit(embed=embed)
 
     finally:
@@ -268,19 +270,19 @@ async def delete_snapshot(ctx, bot, snapshot_name):
     fancy_name = snapshot[2]
     file_path = Path(snapshot[3])
 
-    delete_embed = discord.Embed(
+    embed = discord.Embed(
         title=':warning: Snapshot Deletion',
         description=f'Are you sure you want to delete the snapshot "{fancy_name}"?',
         color=discord.Color.yellow()
     )
 
-    delete_message = await ctx.send(embed=delete_embed)
+    message = await ctx.send(embed=embed)
 
     def check_delete(reaction, user):
-        return user == ctx.author and reaction.message.id == delete_message.id and str(reaction.emoji) in ['✅', '❌']
+        return user == ctx.author and reaction.message.id == message.id and str(reaction.emoji) in ['✅', '❌']
 
-    await delete_message.add_reaction('✅')
-    await delete_message.add_reaction('❌')
+    await message.add_reaction('✅')
+    await message.add_reaction('❌')
 
     try:
         reaction, _ = await bot.wait_for('reaction_add', timeout=120, check=check_delete)
@@ -289,8 +291,8 @@ async def delete_snapshot(ctx, bot, snapshot_name):
             description=f':x: Snapshot deletion process timed out for "{fancy_name}".',
             color=discord.Color.red()
         )
-        await delete_message.edit(embed=embed)
-        await delete_message.clear_reactions()
+        await message.edit(embed=embed)
+        await message.clear_reactions()
         return
 
     if str(reaction.emoji) == '✅':
@@ -303,16 +305,16 @@ async def delete_snapshot(ctx, bot, snapshot_name):
             description=f'Snapshot "{fancy_name}" has been deleted.',
             color=discord.Color.green()
         )
-        await delete_message.edit(embed=embed)
-        await delete_message.clear_reactions()
+        await message.edit(embed=embed)
+        await message.clear_reactions()
     else:
         embed = discord.Embed(
             title=':x: Snapshot Deletion',
             description=f'Snapshot deletion process aborted for "{fancy_name}".',
             color=discord.Color.red()
         )
-        await delete_message.edit(embed=embed)
-        await delete_message.clear_reactions()
+        await message.edit(embed=embed)
+        await message.clear_reactions()
 
 
 async def restore_snapshot(ctx, bot, snapshot_name):
@@ -333,19 +335,19 @@ async def restore_snapshot(ctx, bot, snapshot_name):
     snapshot_path = Path(snapshot[3])
 
     # Prompt user for confirmation before restoring
-    confirm_embed = discord.Embed(
+    embed = discord.Embed(
         title=':tools: Restore Snapshot',
         description=f'Are you sure you want to restore the snapshot "{fancy_name}"?\n\
                       This will create a new snapshot before restoring and overwrite the current world data.',
         color=discord.Color.yellow()
     )
-    confirm_message = await ctx.send(embed=confirm_embed)
+    message = await ctx.send(embed=embed)
 
     def check_reaction(reaction, user):
-        return user == ctx.author and reaction.message.id == confirm_message.id and str(reaction.emoji) in ['✅', '❌']
+        return user == ctx.author and reaction.message.id == message.id and str(reaction.emoji) in ['✅', '❌']
 
-    await confirm_message.add_reaction('✅')
-    await confirm_message.add_reaction('❌')
+    await message.add_reaction('✅')
+    await message.add_reaction('❌')
 
     try:
         reaction, _ = await bot.wait_for('reaction_add', timeout=120, check=check_reaction)
@@ -354,20 +356,20 @@ async def restore_snapshot(ctx, bot, snapshot_name):
             description=f':x: Snapshot restoration process timed out for "{fancy_name}".',
             color=discord.Color.red()
         )
-        await confirm_message.edit(embed=embed)
-        await confirm_message.clear_reactions()
+        await message.edit(embed=embed)
+        await message.clear_reactions()
         return
 
     if str(reaction.emoji) == '✅':
         await create_snapshot(ctx, bot)
-        await confirm_message.delete()
+        await message.delete()
 
         # Prepare embed to update during the process
         embed = discord.Embed(
             description=f':rocket: Restoring snapshot "{fancy_name}"...\n',
             color=discord.Color.blue()
         )
-        waitembed = await ctx.send(embed=embed)
+        message = await ctx.send(embed=embed)
 
         world_folders = ["world", "world_nether", "world_the_end"]
         temp_folder = Path("temp_restore")
@@ -385,7 +387,7 @@ async def restore_snapshot(ctx, bot, snapshot_name):
                     description='The main world folder is missing from the snapshot.\
                                  Aborting restore.',
                                 color=discord.Color.red())
-                await waitembed.edit(embed=embed)
+                await message.edit(embed=embed)
                 shutil.rmtree(temp_folder, ignore_errors=True)
                 return
 
@@ -416,7 +418,7 @@ async def restore_snapshot(ctx, bot, snapshot_name):
 
             shutil.rmtree(temp_folder, ignore_errors=True)
 
-            await waitembed.edit(embed=embed)  # Send Success Message
+            await message.edit(embed=embed)  # Send Success Message
 
         except Exception as e:
             # Catch all exceptions and report them in Discord
@@ -433,8 +435,8 @@ async def restore_snapshot(ctx, bot, snapshot_name):
             description=f'Snapshot restoration process aborted for "{fancy_name}".',
             color=discord.Color.red()
         )
-        await confirm_message.edit(embed=embed)
-        await confirm_message.clear_reactions()
+        await message.edit(embed=embed)
+        await message.clear_reactions()
 
 
 async def download_snapshot(ctx, snapshot_name):
@@ -452,7 +454,7 @@ async def download_snapshot(ctx, snapshot_name):
         await ctx.send(embed=embed)
         return
 
-    initial_message = await ctx.send(
+    message = await ctx.send(
         embed=discord.Embed(
             title=':hourglass: Uploading Snapshot...',
             description=f'Starting upload for snapshot "{snapshot_name}", please wait...',
@@ -463,18 +465,18 @@ async def download_snapshot(ctx, snapshot_name):
     try:
         file = discord.File(str(snapshot_path), filename=snapshot_path.name)
 
-        success_embed = discord.Embed(
+        embed = discord.Embed(
             title=':cloud: Snapshot Uploaded',
             description=f'Snapshot "{snapshot_name}" has been successfully uploaded.',
             color=discord.Color.green()
         )
-        await initial_message.delete()
-        await ctx.send(embed=success_embed, file=file)
+        await message.delete()
+        await ctx.send(embed=embed, file=file)
 
     except Exception as e:
-        error_embed = discord.Embed(
+        embed = discord.Embed(
             title=':x: Snapshot Upload Failed!',
             description=f'Failed to upload snapshot "{snapshot_name}": {str(e)}',
             color=discord.Color.red()
         )
-        await initial_message.edit(embed=error_embed)
+        await message.edit(embed=embed)
