@@ -5,9 +5,10 @@
 #   C0116: missing-function-docstring
 #   C0304: missing-final-newline
 #   E1135: unsupported-membership-test
+#   R1732: consider-using-with
 #   W0718: broad-exception-caught
 #   W1113: keyword-arg-before-vararg
-disable=C0103, C0116, C0304, E1135, W0718, W1113
+disable=C0103, C0116, C0304, E1135, R1732, W0718, W1113
 
 # Maximum line length for the code
 max-line-length=120
