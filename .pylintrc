@@ -7,7 +7,7 @@
 #   E1135: unsupported-membership-test
 #   W0718: broad-exception-caught
 #   W1113: keyword-arg-before-vararg
-disable=C0103, C0116, C0304, E1135, W0718
+disable=C0103, C0116, C0304, E1135, W0718, W1113
 
 # Maximum line length for the code
 max-line-length=120
