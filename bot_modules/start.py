@@ -116,7 +116,7 @@ async def start_server(ctx, bot):
             cwd=root_path.parent
         )
         # Fetch the public URL from ngrok
-        await asyncio.sleep(15)  # Wait a bit for the server to actually come available
+        await asyncio.sleep(2)  # Wait a bit for Ngrok to actually come available
         public_ip = await utils.get_public_ip()
         if public_ip:
             logging.info("Server started successfully, available at: %s", public_ip)

@@ -40,6 +40,9 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
+script_path = Path(__file__).resolve().parent
+root_path = script_path.parent
+
 conn = sqlite3.connect('minecraft_manager.db')
 c = conn.cursor()
 
@@ -51,10 +54,29 @@ BOT_OWNER_ID = int(config.get('PythonConfig', 'bot_owner_id'))
 
 
 def check_server_running(host, port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.settimeout(3)  # Set a timeout for the connection
-        result = sock.connect_ex((host, int(port)))  # Returns 0 if successful
-        return result == 0
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(3)  # Set a timeout for the connection
+            result = sock.connect_ex((host, int(port)))  # Returns 0 if successful
+            return result == 0  # Return True if successful
+    except Exception as e:
+        logging.error(f"Failed to connect to server at {host}:{port} - {str(e)}")
+        return False
+
+
+def check_server_latency(host, port):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(3)
+            start_time = time.time()
+            result = sock.connect_ex((host, port))
+            end_time = time.time()
+
+            if result == 0:
+                return round((end_time - start_time) * 1000, 2)  # Return latency in ms
+    except Exception as e:
+        logging.error(f"Error while pinging server: {str(e)}")
+        return None
 
 
 async def get_public_ip():
@@ -108,10 +130,13 @@ def has_operator(discord_id):
 
         minecraft_username = result[1]
 
-        ops_file = Path('../ops.json')
-        if not ops_file.exists() or ops_file.stat().st_size <= 2:  # 2 bytes for '[]' or truly empty
-            logging.error("'has_operator': %s is empty or missing.", ops_file)
-            return False, 'Operator list is empty or missing. Please contact an admin.'
+        ops_file = root_path.parent / 'ops.json'
+        if not ops_file.exists():  # Check if the file exists at all
+            logging.error("'has_operator': %s is missing.", ops_file)
+            return False, f'Operator list is missing. Tried looking in {ops_file}'
+        if ops_file.stat().st_size <= 2:  # Check if the file LEQ 2 bytes as it default with content `[]`
+            logging.error("'has_operator': %s is empty.", ops_file)
+            return False, 'You do not have operator permissions on the Minecraft server.'
 
         # Load the ops.json data
         with ops_file.open('r', encoding='utf-8') as file:
@@ -127,7 +152,7 @@ def has_operator(discord_id):
 
     except (FileNotFoundError, json.JSONDecodeError):
         logging.error("'has_operator': Failed loading %s.", ops_file)
-        return False, 'Failed to load operator list. Please contact an admin.'
+        return False, 'Failed to load operator list.'
 
 
 async def get_user_reaction(bot, message, user, valid_reactions, timeout=120):

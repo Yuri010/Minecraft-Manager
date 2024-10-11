@@ -66,7 +66,7 @@ async def verify(ctx, bot):
     if not bot.server_running:
         embed = discord.Embed(
             title=':x: Server Offline!',
-            description=':x: The Minecraft server is not running.',
+            description='The Minecraft server is not running.',
             color=discord.Color.red())
         await ctx.send(embed=embed)
         return

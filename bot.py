@@ -38,10 +38,8 @@ Notes:
 import asyncio
 import logging
 import configparser
-import socket
 import sqlite3
 import subprocess
-import time
 
 # Third-party imports
 import aiohttp
@@ -117,7 +115,7 @@ async def stop_command(ctx):
         if not is_op:
             embed = discord.Embed(
                 title=':x: Missing Permissions',
-                description=f':x: {error_message}',
+                description=f'{error_message}',
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -194,7 +192,7 @@ async def shutdown_bot(ctx):
         await bot.close()
     else:
         embed = discord.Embed(
-            title="x: Missing Permissions",
+            title=":x: Missing Permissions",
             description="Only the Minecraft Server Owner can issue this command.",
             color=discord.Color.red()
         )
@@ -296,7 +294,7 @@ async def console_command(ctx, *, command):
     discord_id = ctx.author.id
 
     # Permissions check
-    if ctx.author.id != BOT_OWNER_ID and not bot_modules.has_required_role(ctx):
+    if ctx.author.id != BOT_OWNER_ID:
         # Check if the user is a Minecraft operator
         is_op, error_message = bot_modules.has_operator(discord_id)
         if not is_op:
@@ -360,60 +358,56 @@ async def console_error(ctx, error):
 
 @bot.command(name='status')
 async def status_command(ctx):
+    # Initial message while checking server status
+    loading_embed = discord.Embed(
+        title=':hourglass: Checking Status',
+        description='Checking server status, please wait...',
+        color=discord.Color.blue()
+    )
+    status_message = await ctx.send(embed=loading_embed)
+
     embed_color = discord.Color.red()
     public_ip = await bot_modules.get_public_ip() if bot.server_running else None
+    host, port = None, None
 
     if bot.server_running:
         embed_color = discord.Color.green()
         try:
-            # Check if public_ip is a string and is in the expected format
+            # Parse public_ip and set host/port
             if isinstance(public_ip, str):
+                public_ip = public_ip.replace('tcp://', '')
                 if ':' in public_ip:
-                    host, port = public_ip.replace('tcp://', '').split(':')[:2]
+                    host, port = public_ip.split(':')[:2]
                 else:
-                    host, port = public_ip, '25565'  # Use public_ip as host, default to port 25565
-            else:
-                # Handle the case where public_ip is None or not a string
-                host, port = None, None
-                logging.error("Failed to retrieve public IP at 'status' command.")
+                    host, port = public_ip, '25565'  # Default port
 
             # Only proceed if host and port are valid
-            if host and port:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                    sock.settimeout(3)
-                    result = sock.connect_ex((host, int(port)))
+            if host and port and not bot_modules.check_server_running(host, int(port)):
+                embed_color = discord.Color.red()
 
-                if result != 0:
-                    embed_color = discord.Color.red()
-        except TypeError:
-            logging.error("Failed to check server status: string conversion error.")
+        except Exception as e:
+            logging.error(f"Error while checking server status: {str(e)}")
 
+    # Construct final embed
     embed = discord.Embed(title='Server Status', color=embed_color)
     embed.add_field(name='Status', value='Running' if bot.server_running else 'Stopped', inline=False)
 
     # Update IP field based on validity
-    if isinstance(public_ip, str):
-        embed.add_field(name='IP', value=public_ip.replace('tcp://', ''), inline=False)
-    else:
-        embed.add_field(name='IP', value='N/A', inline=False)  # Public IP retrieval failed
+    embed.add_field(name='IP', value=public_ip if public_ip else 'N/A', inline=False)
 
-    if bot.server_running and host and port:  # Only ping if valid host and port are available
+    # Check ping if server is running and IP/port are available
+    if bot.server_running and host and port:
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(3)
-                start_time = time.time()
-                result = sock.connect_ex((host, int(port)))
-                end_time = time.time()
-
-            if result == 0:
-                ping_ms = round((end_time - start_time) * 1000, 2)
-                embed.add_field(name='Ping', value=f'Latency: {ping_ms} ms', inline=False)
+            latency = bot_modules.check_server_latency(host, int(port))
+            if latency is not None:
+                embed.add_field(name='Ping', value=f'Latency: {latency} ms', inline=False)
             else:
                 embed.add_field(name='Ping', value='Failed to ping server: Port is closed', inline=False)
         except Exception as e:
             embed.add_field(name='Ping', value=f'Failed to ping server: {str(e)}', inline=False)
 
-    await ctx.send(embed=embed)
+    # Edit original message with the final status
+    await status_message.edit(embed=embed)
 
 
 @bot.command(name='snapshots')
