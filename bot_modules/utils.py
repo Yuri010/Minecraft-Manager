@@ -60,7 +60,7 @@ def check_server_running(host, port):
             result = sock.connect_ex((host, int(port)))  # Returns 0 if successful
             return result == 0  # Return True if successful
     except Exception as e:
-        logging.error(f"Failed to connect to server at {host}:{port} - {str(e)}")
+        logging.error("Failed to connect to server at %d:%s - %d", host, port, e)
         return False
 
 
@@ -75,7 +75,7 @@ def check_server_latency(host, port):
             if result == 0:
                 return round((end_time - start_time) * 1000, 2)  # Return latency in ms
     except Exception as e:
-        logging.error(f"Error while pinging server: {str(e)}")
+        logging.error("Error while pinging server: %d", e)
         return None
 
 

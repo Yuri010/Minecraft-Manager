@@ -223,54 +223,12 @@ async def update_bot(ctx):
             embed = discord.Embed(
                 title=':arrows_counterclockwise: Update Available!',
                 description=f'A new version ({latest_version} over {BOT_VERSION}) is available!\n\
-                              Do you want to update now?',
-                color=discord.Color.blue()
+                              Automatic update is unavailable in this version though.\n\
+                                Please update manually from the repository available\
+                                    [here](https://github.com/yuri010/minecraft-manager)',
+                color=discord.Color.yellow()
             )
-            message = await ctx.send(embed=embed)
-            await message.add_reaction('✅')
-            await message.add_reaction('❌')
-
-            def check(reaction, user):
-                return user == ctx.author and str(reaction.emoji) in ['✅', '❌'] and reaction.message.id == message.id
-
-            try:
-                reaction, _ = await bot.wait_for('reaction_add', timeout=60.0, check=check)
-
-                if str(reaction.emoji) == '✅':
-                    embed = discord.Embed(
-                        title=':arrows_counterclockwise: Bot Restarting...',
-                        description='The bot will restart to perform an update. Please wait...',
-                        color=discord.Color.blue()
-                    )
-                    await message.edit(embed=embed)
-                    await message.clear_reactions()
-
-                    try:
-                        # Start the updater process
-                        command = 'start cmd /c "updater.bat -autostart"'
-                        subprocess.Popen(command, shell=True)
-                        await bot.close()
-                    except Exception as e:
-                        embed = discord.Embed(
-                            title=':x: Update Error!',
-                            description=f'An error occurred while starting the update: {str(e)}',
-                            color=discord.Color.red()
-                        )
-                        await message.edit(embed=embed)
-
-                else:
-                    embed = discord.Embed(
-                        description=':x: Update canceled.',
-                        color=discord.Color.red()
-                    )
-                    await message.edit(embed=embed)
-
-            except asyncio.TimeoutError:
-                embed = discord.Embed(
-                    description=':x: Update process timed out.',
-                    color=discord.Color.red()
-                )
-                await message.edit(embed=embed)
+            await ctx.send(embed=embed)
 
         else:
             embed = discord.Embed(
@@ -386,7 +344,7 @@ async def status_command(ctx):
                 embed_color = discord.Color.red()
 
         except Exception as e:
-            logging.error(f"Error while checking server status: {str(e)}")
+            logging.error("Error while checking server status: %d", e)
 
     # Construct final embed
     embed = discord.Embed(title='Server Status', color=embed_color)
